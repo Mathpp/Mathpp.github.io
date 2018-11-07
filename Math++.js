@@ -117,5 +117,5 @@ var MathInit = function() {
         }
     });
     var Module = {};
-    Module["onRuntimeInitialized"] = LoadDefault();
+    Module["postRun"] = LoadDefault();
 }
