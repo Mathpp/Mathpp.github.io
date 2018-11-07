@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="/Math++.png" />
+    <link rel="manifest" href="/manifest.json">
+    <title>Math++</title>
+    <link rel="stylesheet" href="/mathquill/mathquill.css"/>
+    <script src="/Math++.js"></script>
+    <script src="/jquery.min.js"></script>
+    <script src="/mathquill/mathquill.js"></script>
+    <script async type="text/javascript" src="Math+Web.js"></script>
+  </head>
+  <body onload="MathInit()">
+    <div align="right">
+      <button onclick="LoadDefault()">LoadDefault</button>
+      <button onclick="Reset()">Reset</button>
+      <button onclick="Import()">Import</button>
+      <button onclick="Export()">Export</button>
+    </div>
+    <textarea style="width:100%;display:none" id=ExportImport></textarea>
+    <p id="output" style="width:100%"></p>
+    <p><span id="input" style="width:100%"></span></p>
+  </body>
+</html>
