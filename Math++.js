@@ -12,16 +12,12 @@ if ('serviceWorker' in navigator) {
 var inputs = "";
 var ctx = null;
 var ltx = null;
-// var dbg = null;
 var initctx = function() {
     if(!ctx) {
         ctx = new Module.Context();
         ltx = new Module.LaTeXEnvironment();
         ctx.UseGermanNumber(ltx);
     }
-    // if(!dbg) {
-    //     dbg = ctx.CreateDebugger();
-    // }
 };
 var LoadDefault = async function() {
     var r = await fetch("/Default.Math++");
@@ -77,6 +73,14 @@ var Export = function() {
 }
 var enteredMath = "";
 var inputMathField = null;
+var _init = function() {
+    if(Module.Context === "undefined" || Module.LaTeXEnvironment === "undefined") {
+        setTimeout(_init, 100);
+    } else {
+        LoadDefault();
+    }
+}
+var Module = { onRuntimeInitialized: _init};
 var MathInit = function() {
     var inputSpan = document.getElementById('input');
     var output = document.getElementById('output');
@@ -90,8 +94,6 @@ var MathInit = function() {
         window.scrollTo(0,document.body.scrollHeight);
     }
     inputMathField = MQ.MathField(inputSpan, {
-        // autoCommands: 'pi',
-        // autoOperatorNames: 'arccos',
         handlers: {
             edit: function() {
                 enteredMath = inputMathField.latex(); // Get entered math in LaTeX format
@@ -105,19 +107,13 @@ var MathInit = function() {
                         append(expr);
                         var inv = expr.AsInvocable();
                         if(inv) {
-                            // var task = dbg.Run(inv);
-                            // var res = task.Get();
                             res = inv.Invoke(ctx);
-                            if(res/* res.HasValue() && res.Value() */) {
-                                append(res/* .Value() */);
+                            if(res) {
+                                append(res;
                             }
                     }
                 }
             }
         }
     });
-    var Module = { onRuntimeInitialized: function() {
-            setTimeout(LoadDefault(),2);
-        }
-    };
 }
