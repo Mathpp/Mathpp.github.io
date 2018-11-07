@@ -101,16 +101,16 @@ var MathInit = function() {
             enter: function() {
                 initctx();
                 if(inputs.length > 0) inputs += '\n';
-                    inputs += enteredMath;
-                    var expr = ltx.DeSerialize(ctx,enteredMath);
-                    if(expr) {
-                        append(expr);
-                        var inv = expr.AsInvocable();
-                        if(inv) {
-                            res = inv.Invoke(ctx);
-                            if(res) {
-                                append(res;
-                            }
+                inputs += enteredMath;
+                var expr = ltx.DeSerialize(ctx,enteredMath);
+                if(expr) {
+                    append(expr);
+                    var inv = expr.AsInvocable();
+                    if(inv) {
+                        res = inv.Invoke(ctx);
+                        if(res) {
+                            append(res);
+                        }
                     }
                 }
             }
