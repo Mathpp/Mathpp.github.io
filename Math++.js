@@ -116,6 +116,8 @@ var MathInit = function() {
             }
         }
     });
-    var Module = {};
-    Module["onRuntimeInitialized"] = LoadDefault();
+    var Module = { onRuntimeInitialized: function() {
+            setTimeout(LoadDefault(),2);
+        }
+    };
 }
