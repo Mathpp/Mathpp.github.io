@@ -79,7 +79,7 @@ var _init = function() {
     } else {
         LoadDefault();
     }
-}
+};
 var Module = { onRuntimeInitialized: _init};
 var MathInit = function() {
     var inputSpan = document.getElementById('input');
