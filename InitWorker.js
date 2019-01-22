@@ -34,6 +34,7 @@ var init = function() {
             }
         });
     }
+    setTimeout(LoadDefault, 100);
 }
 var worker = new Worker('/Math+Web.js');
 
