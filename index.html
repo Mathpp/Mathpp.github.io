@@ -1,27 +1,62 @@
 <!doctype html>
-<html lang="en-us">
-  <head>
+<html lang="de-DE">
+<head>
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0">
     <link rel="icon" type="image/png" href="/Math++.png" />
     <link rel="manifest" href="/manifest.json">
-    <title>Math++</title>
-    <link rel="stylesheet" href="/mathquill/mathquill.css"/>
-    <script src="/Math++.js"></script>
+    <link href="/Math++.css" rel="stylesheet" type="text/css">
+    <link rel="stylesheet" href="/katex/katex.min.css">
+    <script defer src="/katex/katex.min.js"></script>
+    <link href="/katex/contrib/copy-tex.css" rel="stylesheet" type="text/css">
+    <script src="/katex/contrib/copy-tex.min.js"></script>
+    <link rel="stylesheet" href="/mathquill/mathquill.css" />
     <script src="/jquery.min.js"></script>
-    <script src="/mathquill/mathquill.js"></script>
-    <script async type="text/javascript" src="Math+Web.js"></script>
-  </head>
-  <body onload="MathInit()">
-    <div align="right">
-      <button onclick="LoadDefault()">LoadDefault</button>
-      <button onclick="Reset()">Reset</button>
-      <button onclick="Import()">Import</button>
-      <button onclick="Export()">Export</button>
+    <script src="/mathquill/mathquill.min.js"></script>
+    <script src="/InitWorker.js"></script>
+    <title>Math++</title>
+</head>
+
+<body onload="init()">
+    <nav role="navigation">
+        <div id="menuToggle">
+            <input type="checkbox" id="toggle"/>
+            <span></span>
+            <span></span>
+            <span></span>
+            <ul id="menu">
+                <a>
+                    <li onclick="LoadDefault()">LoadDefault</li>
+                </a>
+                <a>
+                    <li onclick="Import()">Import</li>
+                </a>
+                <a>
+                    <li onclick="Export()">Export</li>
+                </a>
+                <a>
+                    <li onclick="Clear()">Clear</li>
+                </a>
+                <a>
+                    <li onclick="Update()">Update</li>
+                </a>
+                <a href="/Settings.html">
+                    <li>Settings</li>
+                </a>
+                <a href="/About.html">
+                    <li>About</li>
+                </a>
+            </ul>
+        </div>
+    </nav>
+
+    <br />
+    <div style="padding-top:40px">
+        <textarea style="width:100%;display:none;" id=ExportImport></textarea>
+        <p id="output" style="width:100%"></p>
+        <p><span id="input" style="width:100%"></span></p>
     </div>
-    <textarea style="width:100%;display:none" id=ExportImport></textarea>
-    <p id="output" style="width:100%"></p>
-    <p><span id="input" style="width:100%"></span></p>
-  </body>
+</body>
+
 </html>
