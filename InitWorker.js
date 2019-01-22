@@ -34,14 +34,15 @@ var init = function() {
             }
         });
     }
-    setTimeout(LoadDefault, 100);
 }
 var worker = new Worker('/Math+Web.js');
 
 var flow = [];
 var lastid = 0;
 worker.onmessage = function(e) {
-    if(flow.length == 0) {
+    if(e.data[0] == -1) {
+        LoadDefault();
+    } else if(flow.length == 0) {
         setTimeout(worker.onmessage(e), 200);
     }
     else {
