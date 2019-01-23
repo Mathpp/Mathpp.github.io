@@ -1,6 +1,8 @@
 var CACHE_NAME = 'Math++-V1';
 var urlsToCache = [
     '/index.html',
+    '/Settings.html',
+    '/About.html',
     '/Math++.css',
     '/InitWorker.js',
     '/Math+Web.js',
