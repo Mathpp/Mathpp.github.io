@@ -8,6 +8,7 @@
     <link rel="icon" type="image/png" href="/Math++.png" />
     <link rel="manifest" href="/manifest.json">
     <link href="/Math++.css" rel="stylesheet" type="text/css">
+    <script src="/swclient.js"></script>    
     <title>Math++ Settings</title>
 </head>
 
@@ -22,6 +23,9 @@
                 <a href="/index.html">
                     <li>Home</li>
                 </a>
+                <a>
+                    <li onclick="Update()">Update</li>
+                </a>
                 <a href="/Settings.html">
                     <li>Settings</li>
                 </a>
@@ -32,19 +36,26 @@
     <br />
     <div style="padding-top:40px">
         <p>
-            <h1>Experimental mathematical Calculator</h1>
+            <h1>Experimental pseudo mathematical Calculator</h1>
+            <h2>Changelog</h2>
+            <h3>Version 0.7.2-Alpha - 15.02.2019</h3>
+            <ul>
+                <li>Added settings dialog</li>
+                <li>Default english numeric format</li>
+                <li>Ignores now whitespaces</li>
+                <li>Fixed handling operators enclosed in two or more relational operators like =,&lt;&gt;...</li>
+            </ul>
             <h2>Features</h2>
             <ul>
-                <li>Backed programmed in C++ and UI in javascript running both offline on your Device</li>
-                <li>Temporary Only German Number Format accepts numbers like 10.000.003,23 and ";" to sepeate parameters in internal Functions</li>
+                <li>Runs offline on your device, please press Update to update</li>
                 <li>define your own operators like a%b:=a mod b</li>
                 <li>Shows steps (To be improved)</li>
                 <li>Switch Numeric Base (b) with "switchbase(b)"</li>
-                <li>Print Result of Expression (e) with Numeric Base (b) with "tobase(e;b)"</li>
+                <li>Print Result of Expression (e) with specfic numeric Base (b) with "tobase(e;b)"</li>
             </ul>
             <br/>
             <h2>About</h2>
-            Version 0.7.1-Alpha3 Copyright 2017-2019 Christopher Homberger (<a href="mailto:christopher.homberger@web.de">christopher.homberger@web.de</a>), the UI uses <a href="http://mathquill.com/">Mathquill</a> and <a href="https://katex.org/">KaTeX</a>
+            Version 0.7.2-Alpha Copyright 2017-2019 Christopher Homberger (<a href="mailto:christopher.homberger@web.de">christopher.homberger@web.de</a>), the UI uses <a href="http://mathquill.com/">Mathquill</a> with experimental Android backspace patches and <a href="https://katex.org/">KaTeX</a>
         </p>
     </div>
 </body>

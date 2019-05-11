@@ -1,19 +1,12 @@
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', function() {
-        navigator.serviceWorker.register('/sw.js').then(function(registration) {
-        console.log('ServiceWorker registration successful with scope: ', registration.scope);
-        }, function(err) {
-        console.log('ServiceWorker registration failed: ', err);
-        });
-    });
-}
 var MQ = null;
-var inputs = "";
+var inputs = [];
 var inputSpan = null;
 var output = null;
 var inputMathField = null;
 var toggle = null;
+var settings = null;
 var init = function() {
+    settings = getSettings();
     inputSpan = document.getElementById('input');
     output = document.getElementById('output');
     toggle = document.getElementById("toggle");
@@ -26,29 +19,46 @@ var init = function() {
                     enteredMath = inputMathField.latex();
                 },
                 enter: function() {
-                    if(inputs.length > 0) inputs += '\n';
                     var enteredMath = inputMathField.latex();
-                    inputs += enteredMath;
+                    inputs.push(enteredMath);
                     invoke(enteredMath);
                 }
             }
         });
     }
-}
+};
+
 var worker = new Worker('/Math+Web.js');
 
 var flow = [];
 var lastid = 0;
+
+loadState = function(inputs) {
+    for (const input of inputs) {
+        if (input instanceof Array && input.length == config.length) {
+            worker.postMessage([2, input]);
+        } else {
+            invoke(input);
+        }
+    }
+}
+
 worker.onmessage = function(e) {
     if(e.data[0] == -1) {
-        LoadDefault();
+        var linput = localStorage.getItem("inputs");
+        if (linput == null) {
+            LoadDefault();
+        } else {
+            var ninputs = JSON.parse(linput);
+            loadState(ninputs);
+            inputs.push(...ninputs);
+        }
     } else if(flow.length == 0) {
         setTimeout(worker.onmessage(e), 200);
     }
     else {
         var text = e.data[1];
         var i = e.data[0];
-        // var escroll = document.body.scrollTop >= document.body.scrollHeight;
         var show = null;
         while(i >= flow.length) {
             var div = document.createElement("div");
@@ -80,23 +90,27 @@ worker.onmessage = function(e) {
             show.appendChild(line.cloneNode(true));
         }
         flow[i].appendChild(document.createElement("br"));
-        /* if(escroll)  */window.scrollTo(0,document.body.scrollHeight);
+        window.scrollTo(0,document.body.scrollHeight);
     }
 };
 
 var invoke = function(enteredMath) {
+    toggle.checked = false;
     worker.postMessage([0,enteredMath]);
 };
 
 var Reset = function() {
+    toggle.checked = false;
+    inputs = [];
     worker.postMessage([1]);
-}
+};
 
 var Clear = function() {
+    toggle.checked = false;
     while (output.firstChild) {
         output.removeChild(output.firstChild);
     }
-}
+};
 
 var Import = function() {
     toggle.checked = false;
@@ -104,11 +118,9 @@ var Import = function() {
     if(exim.style.display == 'none') {
         exim.style.display = 'initial';
     } else {
-        var ninputs = exim.value;
-        inputs += ninputs;
-        for(let line of ninputs.split('\n')) {
-            invoke(line);
-        }
+        var ninputs = JSON.parse(exim.value);
+        loadState(ninputs);
+        inputs.push(...ninputs);
         exim.style.display = 'none';
     }
 };
@@ -118,21 +130,29 @@ var Export = function() {
     if(exim.style.display == 'none') {
         exim.style.display = 'initial';
     }
-    exim.value=inputs;
+    exim.value=JSON.stringify(inputs);
+};
+
+var configure = function(config) {
+    inputs.push(config);
+    worker.postMessage([2, config]);
 }
 
 var LoadDefault = async function() {
+    configure(config);
+    // Load German Defaults
     toggle.checked = false;
     var r = await fetch("/Default.Math++");
     var text = await r.text();
     for(let line of text.split(/\r?\n/)) {
+        inputs.push(line);
         invoke(line);
     }
-    inputs += text;
+    // Load Custom Settings
+    configure(settings);
 };
 
-var Update = function() {
-    if(navigator.serviceWorker) {
-        navigator.serviceWorker.postMessage("update");
-    }
+onbeforeunload = function(e) {
+    localStorage.setItem("inputs", JSON.stringify(inputs));
+    inputs = null;
 }

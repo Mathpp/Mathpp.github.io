@@ -1288,6 +1288,7 @@ var saneKeyboardEvents = (function() {
   // create a keyboard events shim that calls callbacks at useful times
   // and exports useful public methods
   return function saneKeyboardEvents(el, handlers) {
+    var androidaround = false;
     var keydown = null;
     var keypress = null;
 
@@ -1346,7 +1347,12 @@ var saneKeyboardEvents = (function() {
     }
 
     function handleKey() {
-      handlers.keystroke(stringify(keydown), keydown);
+      if (keydown.which === 229) {
+        androidaround = true;
+        textarea.val('\0');
+      } else {
+        handlers.keystroke(stringify(keydown), keydown);
+      }
     }
 
     // -*- event handlers -*- //
@@ -1401,7 +1407,21 @@ var saneKeyboardEvents = (function() {
       if (hasSelection()) return;
 
       var text = textarea.val();
-      if (text.length === 1) {
+      if (androidaround) {
+        androidaround = false;
+        textarea.val('');
+        if (text.length == 0) {
+          textarea.val('');
+          handlers.keystroke('Backspace', keydown);
+        }
+        else if (text.length >= 2/* text.length === 2 || text.length === 3 && text.charCodeAt(1) >= 0xd800 */) {
+          var txt = text.substring(1);
+          handlers.keystroke(txt === ' ' ? 'Spacebar' : txt, keydown);
+          if (!keydown.isDefaultPrevented()) {
+            handlers.typedText(txt);
+          }
+        }
+      } else if (text.length >= 1/* text.length === 1 || text.length === 2 && text.charCodeAt(0) >= 0xd800 */) {
         textarea.val('');
         handlers.typedText(text);
       } // in Firefox, keys that don't type text, just clear seln, fire keypress
@@ -2240,7 +2260,9 @@ var latexMathParser = (function() {
   // Parsers yielding either MathCommands, or Fragments of MathCommands
   //   (either way, something that can be adopted by a MathBlock)
   var variable = letter.map(function(c) { return Letter(c); });
-  var symbol = regex(/^[^${}\\_^]/).map(function(c) { return VanillaSymbol(c); });
+  // Allow pasting emoticons (Windows), also parse combinded emoticons with U+200D and unicode support es6
+  // Chrome is so sad, needs brackets around group to match whole smily
+  var symbol = regex(/^[^${}\\_^](\u{200D}([^${}\\_^]))?/).map(function(c) { return VanillaSymbol(c); });
 
   var controlSequence =
     regex(/^[^\\a-eg-zA-Z]/) // hotfix #164; match MathBlock::write
@@ -3720,6 +3742,28 @@ var SupSub = P(MathCommand, function(_, super_) {
       };
     }(this, 'sub sup'.split(' ')[i], 'sup sub'.split(' ')[i], 'down up'.split(' ')[i]));
   };
+  _.reflow = function() {
+    var $block = this.jQ ;//mq-supsub
+    var $prev = $block.prev() ;
+
+    if ( !$prev.length ) {
+        //we cant normalize it without having prev. element (which is base)
+        return ;
+    }
+
+    var $sup = $block.children( '.mq-sup' );//mq-supsub -> mq-sup
+    if ( $sup.length ) {
+        var sup_fontsize = parseInt( $sup.css('font-size') ) ;
+        var sup_bottom = $sup.offset().top + $sup.height() ;
+        //we want that superscript overlaps top of base on 0.7 of its font-size
+        //this way small superscripts like x^2 look ok, but big ones like x^(1/2/3) too
+        var needed = sup_bottom - $prev.offset().top  - 0.7*sup_fontsize ;
+        var cur_margin = parseInt( $sup.css('margin-bottom' ) ) ;
+        //we lift it up with margin-bottom
+        $sup.css( 'margin-bottom', cur_margin + needed ) ;
+    }
+  } ;
+
 });
 
 function insLeftOfMeUnlessAtEnd(cursor) {
@@ -3765,15 +3809,6 @@ LatexCmds['^'] = P(SupSub, function(_, super_) {
     this.sup.downOutOf = insLeftOfMeUnlessAtEnd;
     super_.finalizeTree.call(this);
   };
-  _.reflow = function() {
-     var $block = this.jQ;//mq-supsub
-
-     var h = $block.prev().innerHeight() ;
-     h *= 0.6 ;
-
-     $block.css( 'vertical-align',  h + 'px' ) ;
-
-  } ;
 });
 
 var SummationNotation = P(MathCommand, function(_, super_) {
