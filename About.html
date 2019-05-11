@@ -4,11 +4,13 @@
 <head>
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0">
-    <link rel="icon" type="image/png" href="/Math++.png" />
-    <link rel="manifest" href="/manifest.json">
-    <link href="/Math++.css" rel="stylesheet" type="text/css">
-    <script src="/swclient.js"></script>    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="Math++.png" />
+    <link rel="apple-touch-icon" href="Math++.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="Math++-192.png">
+    <link rel="manifest" href="manifest.json">
+    <link href="Math++.css" rel="stylesheet" type="text/css">
+    <script src="swclient.js"></script>    
     <title>Math++ Settings</title>
 </head>
 
@@ -20,30 +22,29 @@
             <span></span>
             <span></span>
             <ul id="menu">
-                <a href="/index.html">
+                <a href="index.html">
                     <li>Home</li>
                 </a>
                 <a>
                     <li onclick="Update()">Update</li>
                 </a>
-                <a href="/Settings.html">
+                <a href="Settings.html">
                     <li>Settings</li>
                 </a>
             </ul>
         </div>
     </nav>
-
-    <br />
-    <div style="padding-top:40px">
+    <div>
         <p>
             <h1>Experimental pseudo mathematical Calculator</h1>
             <h2>Changelog</h2>
-            <h3>Version 0.7.2-Alpha - 15.02.2019</h3>
+            <h3>Version 0.7.2-Alpha - 18.02.2019</h3>
             <ul>
                 <li>Added settings dialog</li>
                 <li>Default english numeric format</li>
                 <li>Ignores now whitespaces</li>
                 <li>Fixed handling operators enclosed in two or more relational operators like =,&lt;&gt;...</li>
+                <li>Hopefully Fixed mathquill on Android</li>
             </ul>
             <h2>Features</h2>
             <ul>
@@ -58,6 +59,7 @@
             Version 0.7.2-Alpha Copyright 2017-2019 Christopher Homberger (<a href="mailto:christopher.homberger@web.de">christopher.homberger@web.de</a>), the UI uses <a href="http://mathquill.com/">Mathquill</a> with experimental Android backspace patches and <a href="https://katex.org/">KaTeX</a>
         </p>
     </div>
+    <script src="polyfills/iosopeninapp.js"></script>
 </body>
 
 </html>

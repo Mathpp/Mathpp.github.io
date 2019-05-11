@@ -1,0 +1,134 @@
+/* .mgrid {
+    padding-top: 40px;
+}
+
+#ExportImport {
+    width: 100%;
+}
+
+#output {
+    width: 100%;
+    overflow-x: scroll;
+}
+
+#input {
+    width: 100%;
+} */
+
+.stackelement, [id^="input"], #ExportImport, #output {
+    width: calc(100% - 12px);
+    margin: 5px;
+}
+
+/* body div {
+    position: absolute;
+    top: 40px;
+    height: calc(100% - 40px);
+}
+body div * {
+    position: relative;
+    height: auto;
+} */
+
+#ngrid {
+    display: grid;
+    /* display: -ms-grid; */
+    /* grid-template-columns: repeat(8, 10px); */
+    grid-auto-columns: min-content;
+    /* -ms-grid-columns: (1fr)[10]; */
+    grid-auto-rows: auto;
+    /* -ms-grid-rows: auto; */
+    gap: 0px;
+    /* justify-items: stretch; */
+    /* align-items: stretch; */
+    touch-action: manipulation;
+    -ms-touch-action: manipulation;
+}
+
+/* #keypad button, #keyboard button, #ngrid button { */
+button {
+    -webkit-appearance: none;
+    /* -webkit-transition-duration: 0.4s; */ /* Safari */
+    /* transition-duration: 0.4s; */
+    /* height: 50px; */
+    /* border-radius: 2px; */
+    padding: 2px;
+    /* padding-top: 10px; */
+    /* padding-bottom: 10px; */
+    white-space: nowrap;
+    background-color: #ffffff;
+    border: 1px solid #a8a8a8;
+}
+
+/* button * katex {
+    overflow-x: visible !important;
+    overflow-y: visible !important;
+} */
+
+button:active {
+    background-color: #a8a8a8;
+    transition-duration: 250ms;
+}
+
+#ngrid :nth-child(10n+0) {
+    -ms-grid-column: 10;
+}
+
+#ngrid :nth-child(10n+1) {
+    -ms-grid-column: 1;
+}
+
+#ngrid :nth-child(10n+2) {
+    -ms-grid-column: 2;
+}
+
+#ngrid :nth-child(10n+3) {
+    -ms-grid-column: 3;
+}
+
+#ngrid :nth-child(10n+4) {
+    -ms-grid-column: 4;
+}
+
+#ngrid :nth-child(10n+5) {
+    -ms-grid-column: 5;
+}
+
+#ngrid :nth-child(10n+6) {
+    -ms-grid-column: 6;
+}
+
+#ngrid :nth-child(10n+7) {
+    -ms-grid-column: 7;
+}
+
+#ngrid :nth-child(10n+8) {
+    -ms-grid-column: 8;
+}
+
+#ngrid :nth-child(10n+9) {
+    -ms-grid-column: 9;
+}
+
+#ngrid :nth-child(n):nth-child(-n+11) {
+    -ms-grid-row: 1;
+}
+
+#ngrid :nth-child(n+11):nth-child(-n+21) {
+    -ms-grid-row: 2;
+}
+
+#ngrid :nth-child(n+21):nth-child(-n+31) {
+    -ms-grid-row: 3;
+}
+
+#ngrid :nth-child(n+31):nth-child(-n+41) {
+    -ms-grid-row: 4;
+}
+/* #ngrid button:hover {
+    background-color: #2285a3;
+} */
+
+.mathbtn {
+    pointer-events:none;
+}
