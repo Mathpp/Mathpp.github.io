@@ -640,6 +640,9 @@ var Cursor = P(Point, function(_) {
   };
   _.insDirOf = function(dir, el) {
     prayDirection(dir);
+    if(el[dir] != 0 && el[dir].ctrlSeq === '\\parameter') {
+      return this.insAtDirEnd(-dir, el[dir].ends[-dir]);
+    }
     this.jQ.insDirOf(dir, el.jQ);
     this.withDirInsertAt(dir, el.parent, el[dir], el);
     this.parent.jQ.addClass('mq-hasCursor');
@@ -2260,9 +2263,10 @@ var latexMathParser = (function() {
   // Parsers yielding either MathCommands, or Fragments of MathCommands
   //   (either way, something that can be adopted by a MathBlock)
   var variable = letter.map(function(c) { return Letter(c); });
-  // Allow pasting emoticons (Windows), also parse combinded emoticons with U+200D and unicode support es6
-  // Chrome is so sad, needs brackets around group to match whole smily
-  var symbol = regex(/^[^${}\\_^](\u{200D}([^${}\\_^]))?/).map(function(c) { return VanillaSymbol(c); });
+  // ~Allow pasting emoticons (Windows), also parse combinded emoticons with U+200D and unicode support es6
+  // ~Chrome is so sad, needs brackets around group to match whole smily
+  // ~/^[^${}\\_^](\u{200D}([^${}\\_^]))?/u
+  var symbol = regex(/^[^${}\\_^]/).map(function(c) { return VanillaSymbol(c); });
 
   var controlSequence =
     regex(/^[^\\a-eg-zA-Z]/) // hotfix #164; match MathBlock::write
@@ -3927,7 +3931,7 @@ CharCmds['/'] = P(Fraction, function(_, super_) {
           leftward instanceof (LatexCmds.text || noop) ||
           leftward instanceof SummationNotation ||
           leftward.ctrlSeq === '\\ ' ||
-          /^[,;:]$/.test(leftward.ctrlSeq)
+          /^[.;:]$/.test(leftward.ctrlSeq)
         ) //lookbehind for operator
       ) leftward = leftward[L];
 
@@ -4194,6 +4198,10 @@ var OPP_BRACKS = {
   '|': '|',
   '\\lVert ' : '\\rVert ',
   '\\rVert ' : '\\lVert ',
+  '&#8970;' : '&#8971;',
+  '\\lfloor ': '\\rfloor ',
+  '&#8968;' : '&#8969;',
+  '\\lceil ': '\\rceil ',
 };
 
 function bindCharBracketPair(open, ctrlSeq) {
@@ -4209,6 +4217,10 @@ LatexCmds.rangle = bind(Bracket, R, '&lang;', '&rang;', '\\langle ', '\\rangle '
 CharCmds['|'] = bind(Bracket, L, '|', '|', '|', '|');
 LatexCmds.lVert = bind(Bracket, L, '&#8741;', '&#8741;', '\\lVert ', '\\rVert ');
 LatexCmds.rVert = bind(Bracket, R, '&#8741;', '&#8741;', '\\lVert ', '\\rVert ');
+LatexCmds.lfloor = bind(Bracket, L, '&#8970;', '&#8971;', '\\lfloor ', '\\rfloor ');
+LatexCmds.rfloor = bind(Bracket, R, '&#8970;', '&#8971;', '\\lfloor ', '\\rfloor ');
+LatexCmds.lceil = bind(Bracket, L, '&#8968;', '&#8969;', '\\lceil ', '\\rceil ');
+LatexCmds.rceil = bind(Bracket, R, '&#8968;', '&#8969;', '\\lceil ', '\\rceil ');
 
 LatexCmds.left = P(MathCommand, function(_) {
   _.parser = function() {
@@ -4299,6 +4311,101 @@ LatexCmds.MathQuillMathField = P(MathCommand, function(_, super_) {
   };
   _.latex = function(){ return this.ends[L].latex(); };
   _.text = function(){ return this.ends[L].text(); };
+});
+
+LatexCmds.formula = P(MathCommand, function(_, super_) {
+  _.init = function() {
+    super_.init.call(this, '\\formula', '<span>&0</span>');
+  };
+
+  _.latex = function() {
+    var blocks = [];
+    super_.eachChild.call(this, function(c){blocks.push(c.latex())});
+    i = 0;
+    return this.latextemplate.replace(/\\parameter\s*{[^}]*}/g, function(s) {
+      return blocks[i++];
+    });
+  };
+  _.finalizeTree = function() {
+    // var args = arguments;
+    // var patch = function(c) {
+    //   if(typeof c.finalizeTree !== 'undefined') {
+    //     c.finalizeTree.apply(c, args);
+    //   }
+    //   if(c.ends[L] != 0) {
+    //     patch(c.ends[L]);
+    //   }
+    //   if(c[R] != 0) {
+    //     patch(c[R]);
+    //   }
+    // };
+    // patch(this.content.ends[L]);
+    if(typeof this.found === 'undefined') {
+      this.latextemplate = this.blocks[0].latex();
+      var patch = function(c, found) {
+        if(c.ctrlSeq === '\\parameter') {
+          if(c[L] == 0 && c[R] == 0) {
+            var p = c.parent.parent;
+            c.remove();
+            found.push(p.ends);
+            return;
+          } else {
+            found.push(c.ends);
+          }
+        } else if(c.ends[L] != 0) {
+          patch(c.ends[L], found);
+        }
+        if(c[R] != 0) {
+          patch(c[R], found);
+        }
+      };
+      var found = [];
+      patch(this.ends[L], found);
+      this.content = this.ends[L];
+      if(found.length > 0) {
+        (this.ends[L] = found[0][L]).parent = this;
+        (this.ends[R] = found[found.length - 1][R]).parent = this;
+        for (var i = 1; i < found.length; i++) {
+          found[i - 1][L][R] = found[i][R];
+          found[i][R][L] = found[i - 1][L];
+        }
+      } else {
+        this.ends[L] = this.ends[R] = 0;
+        this.moveTowards = function(dir, cursor) {
+          cursor.jQ.insDirOf(dir, this.jQ);
+          cursor[-dir] = this;
+          cursor[dir] = this[dir];
+        };
+      }
+    }
+    super_.eachChild.call(this, function(c){
+      c.deleteOutOf = function(dir, cursor) {
+        cursor.unwrapGramp();
+      };
+    });
+    return this;
+  }
+
+  _.reflow = function() {
+    var patch = function(c) {
+      if(typeof c.reflow !== 'undefined') {
+        c.reflow();
+      }
+      if(c.ends[L] != 0) {
+        patch(c.ends[L]);
+      }
+      if(c[R] != 0) {
+        patch(c[R]);
+      }
+    };
+    patch(this.content);
+  };
+});
+
+LatexCmds.parameter = P(MathCommand, function(_, super_) {
+  _.init = function() {
+    super_.init.call(this, '\\parameter', '<span>&0</span>');
+  };
 });
 
 // Embed arbitrary things
@@ -4546,10 +4653,6 @@ LatexCmds.bigoplus = bind(VanillaSymbol, '\\bigoplus ', '&#8853;');
 LatexCmds.biguplus = bind(VanillaSymbol, '\\biguplus ', '&#8846;');
 
 //delimiters
-LatexCmds.lfloor = bind(VanillaSymbol, '\\lfloor ', '&#8970;');
-LatexCmds.rfloor = bind(VanillaSymbol, '\\rfloor ', '&#8971;');
-LatexCmds.lceil = bind(VanillaSymbol, '\\lceil ', '&#8968;');
-LatexCmds.rceil = bind(VanillaSymbol, '\\rceil ', '&#8969;');
 LatexCmds.opencurlybrace = LatexCmds.lbrace = bind(VanillaSymbol, '\\lbrace ', '{');
 LatexCmds.closecurlybrace = LatexCmds.rbrace = bind(VanillaSymbol, '\\rbrace ', '}');
 LatexCmds.lbrack = bind(VanillaSymbol, '[');
