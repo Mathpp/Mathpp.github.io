@@ -71,8 +71,14 @@ function dragable(section) {
             e.target.style.gridColumn = gridColumn;
             e.target.style.gridRow = gridRow;
         } else if(e.target.nodeName == "DIV" && !e.target.draggable) {
-            e.target.parentElement.insertBefore(dragEl, e.target.nextSibling);
-            e.target.parentElement.removeChild(e.target);
+            // if(e.target.parentElement == dragEl.parentElement) {
+                var next = dragEl.nextSibling;
+                var parent = dragEl.parentElement;
+                e.target.parentElement.insertBefore(dragEl, e.target.nextSibling);
+                parent.insertBefore(e.target, next);
+            // } else {
+            //     // e.target.parentElement.removeChild(e.target);
+            // }
             // dragEl.style.gridColumn = ((8 * (e.pageX - e.target.offsetLeft) / e.target.offsetWidth) << 0) + 1;
             // dragEl.style.gridRow = ((5 * (e.pageY - e.target.offsetTop) / e.target.offsetHeight) << 0) + 1;
             // e.target.appendChild(dragEl);
