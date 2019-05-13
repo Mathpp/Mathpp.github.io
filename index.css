@@ -28,7 +28,7 @@ input[type="radio"] + label + div {
 input[type="radio"]:checked + label + div {
     display: grid;
     grid-template-columns: repeat(8, minmax(25px, auto));
-    grid-template-rows: repeat(5, minmax(25px, auto));
+    grid-template-rows: repeat(6, minmax(25px, auto));
     gap: 0px;
     touch-action: manipulation;
     -ms-touch-action: manipulation;

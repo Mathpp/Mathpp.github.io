@@ -71,7 +71,7 @@
             <button onclick="showhidemathkeypad()" class="stackelement">Show Math Keypad</button>
         </div>
         <div id="keypad" style="display:none;">
-            <span id="inputkeypad" style="grid-row: 1; grid-column: 1 / span 4"></span>
+            <span id="inputkeypad" style="grid-row: 1; grid-column: 1 / span 5"></span>
             <button onclick="showhidemathkeypad()" style="grid-row: 2; grid-column: 1">Show default Keyboard
                 <svg class="progress-ring"
                     width="24"
@@ -86,9 +86,10 @@
                     cy="12"/>
                 </svg>
             </button>
+            <button onclick="ConvertMathButton(editstate=!editstate)" style="grid-row: 2; grid-column: 5">Edit</button>
             <input id="__Tab1" name="tab" type="radio" checked></input>
             <label for="__Tab1" style="grid-row: 2; grid-column: 2">Tab1</label>
-            <div style="grid-row: 3; grid-column: 1 / span 4">
+            <div style="grid-row: 3; grid-column: 1 / span 5">
                 <div></div>
                 <div></div>
                 <div></div>
@@ -140,7 +141,7 @@
             </div>
             <input id="__Tab2" name="tab" type="radio"></input>
             <label for="__Tab2" style="grid-row: 2; grid-column: 3">Tab2</label>
-            <div style="grid-row: 3; grid-column: 1 / span 4">
+            <div style="grid-row: 3; grid-column: 1 / span 5">
                 <div></div>
                 <div></div>
                 <div></div>
@@ -192,7 +193,7 @@
             </div>
             <input id="__All" name="tab" type="radio"></input>
             <label for="__All" style="grid-row: 2; grid-column: 4">All</label>
-            <div style="grid-row: 3; grid-column: 1 / span 4" id="all">
+            <div style="grid-row: 3; grid-column: 1 / span 5" id="all">
             </div>
         </div>
     </div>
