@@ -14,7 +14,7 @@ String.prototype.replaceAll = function(search, replacement) {
 };
 var environment = {
     env: {
-        memory: bmemory, exp: Math.exp, pow: Math.pow, log: Math.log, log2: Math.log2, log10: Math.log10, sin: Math.sin, cos: Math.cos, tan: Math.tan, sinh: Math.sinh, cosh: Math.cosh, tanh: Math.tanh, asin: Math.asin, acos: Math.acos, atan: Math.atan, atan2: Math.atan2, asinh: Math.asinh, acosh: Math.acosh, atanh: Math.atanh,
+        memory: bmemory, exp: Math.exp, pow: Math.pow, sqrt: Math.sqrt, log: Math.log, log2: Math.log2, log10: Math.log10, sin: Math.sin, cos: Math.cos, tan: Math.tan, sinh: Math.sinh, cosh: Math.cosh, tanh: Math.tanh, asin: Math.asin, acos: Math.acos, atan: Math.atan, atan2: Math.atan2, asinh: Math.asinh, acosh: Math.acosh, atanh: Math.atanh,
         fmod: function (a, b) {
             return a % b;
         },
