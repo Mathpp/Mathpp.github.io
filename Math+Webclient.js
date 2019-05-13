@@ -153,35 +153,32 @@ worker.onmessage = function(e) {
         updateProgress(1);
         window.scrollTo(0,document.body.scrollHeight);
     } else if(e.data[0] == -4) {
-        // var cell = document.createElement("div");
-        // document.getElementById("ngrid").appendChild(cell);
-        var button = document.createElement('button');
-        // button.setAttribute('onfocus', 'inputMathField.focus();');
+        var button = document.createElement('div');
         button.setAttribute('formula', e.data[2]);
         button.setAttribute('parameter', e.data[3].toString());
         var keystroke = [];
         for(var i = 0; i < e.data[3]; ++i) {
             keystroke.push("Left");
         }
-        // button.setAttribute('onclick', 'wrttex(\'' + e.data[2].replace(/\\/g, "\\\\") + '\');inputMathField.keystroke(\'' + keystroke.join(" ") + '\')');
-        // button.style = "pointer-events:none;";
         var line = document.createElement("div");
         button.appendChild(line);
-        document.getElementById("ngrid")/* cell */.appendChild(button);
+        button.draggable = true;
+        button.classList.add("btn");
+        document.getElementById("all").appendChild(button);
         line.classList.add("mathbtn");
         MQ.StaticMath(line, { mouseEvents:false }).latex(e.data[1]); 
         // button.appendChild(line);
         // katex.render(e.data[1], line, {
         //     throwOnError: false
         // });
-        button.onfocus = function() {
-            inputMathField.focus();
-        };
-        var keys = keystroke.join(" ");
-        button.onclick = function() {
-            wrttex(e.data[2]);
-            inputMathField.keystroke(keys);
-        }
+        // button.onfocus = function() {
+        //     inputMathField.focus();
+        // };
+        // var keys = keystroke.join(" ");
+        // button.onclick = function() {
+        //     wrttex(e.data[2]);
+        //     inputMathField.keystroke(keys);
+        // }
     } else if(flow.length == 0) {
         setTimeout(worker.onmessage(e), 200);        
     } else {

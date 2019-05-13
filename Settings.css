@@ -103,7 +103,8 @@
   #ngrid {
     display: grid;
     grid-template-columns: repeat(8, 1fr);
-    grid-auto-rows: auto;
+    grid-template-rows: repeat(5, 1fr);
+    /* grid-auto-rows: auto; */
     gap: 0px;
     justify-items: stretch;
     align-items: stretch;
@@ -113,7 +114,7 @@
 }
 
 /* #keypad button, #keyboard button, #ngrid button { */
-button {
+button, .btn {
     -webkit-appearance: none;
     /* -webkit-transition-duration: 0.4s; */ /* Safari */
     /* transition-duration: 0.4s; */
