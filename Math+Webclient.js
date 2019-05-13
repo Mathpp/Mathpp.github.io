@@ -127,6 +127,59 @@ loadState = function(inputs) {
     worker.postMessage([3]);
 }
 
+var setinvokeHandler = function(button, formula, parameter) {
+    var keystroke = [];
+    for(var i = 0; i < parameter; ++i) {
+        keystroke.push("Left");
+    }
+    button.onfocus = function() {
+        inputMathField.focus();
+    };
+    var keys = keystroke.join(" ");
+    button.onclick = function() {
+        wrttex(formula);
+        inputMathField.keystroke(keys);
+    }
+}
+
+var appendMathButton = function (icon, formula, parameter, draggable) {
+    var button = document.createElement(draggable ? 'div' : 'button');
+    button.setAttribute('formula', formula);
+    button.setAttribute('parameter', parameter.toString());
+    var line = document.createElement("div");
+    button.appendChild(line);
+    document.getElementById("all").appendChild(button);
+    line.classList.add("mathbtn");
+    MQ.StaticMath(line, { mouseEvents:false }).latex(icon);
+    if(!draggable) {
+        setinvokeHandler(button, formula, parameter);
+    } else {
+        button.draggable = true;
+        button.classList.add("btn");
+    }
+}
+
+var ConvertMathButton = function(draggable) {
+    var nodes = document.querySelectorAll(!draggable ? "input[type=\"radio\"] + label + div > div[class=btn]" : "input[type=\"radio\"] + label + div > button");
+    for (var node of nodes) {
+        var button = document.createElement(draggable ? 'div' : 'button');
+        button.setAttribute('formula', node.getAttribute('formula'));
+        button.setAttribute('parameter', node.getAttribute('parameter'));
+        button.appendChild(node.firstChild);
+        button.style.gridArea = node.style.gridArea;
+        node.parentNode.insertBefore(button, node);
+        node.parentNode.removeChild(node);
+        if(!draggable) {
+            setinvokeHandler(button, node.getAttribute('formula'), Number.parseInt(node.getAttribute('parameter')));
+        } else {
+            button.draggable = true;
+            button.classList.add("btn");
+        }
+    }
+};
+
+var editstate = false;
+
 worker.onmessage = function(e) {
     if(e.data[0] == -1) {
         updateProgress(1);
@@ -153,32 +206,7 @@ worker.onmessage = function(e) {
         updateProgress(1);
         window.scrollTo(0,document.body.scrollHeight);
     } else if(e.data[0] == -4) {
-        var button = document.createElement('div');
-        button.setAttribute('formula', e.data[2]);
-        button.setAttribute('parameter', e.data[3].toString());
-        var keystroke = [];
-        for(var i = 0; i < e.data[3]; ++i) {
-            keystroke.push("Left");
-        }
-        var line = document.createElement("div");
-        button.appendChild(line);
-        button.draggable = true;
-        button.classList.add("btn");
-        document.getElementById("all").appendChild(button);
-        line.classList.add("mathbtn");
-        MQ.StaticMath(line, { mouseEvents:false }).latex(e.data[1]); 
-        // button.appendChild(line);
-        // katex.render(e.data[1], line, {
-        //     throwOnError: false
-        // });
-        // button.onfocus = function() {
-        //     inputMathField.focus();
-        // };
-        // var keys = keystroke.join(" ");
-        // button.onclick = function() {
-        //     wrttex(e.data[2]);
-        //     inputMathField.keystroke(keys);
-        // }
+        appendMathButton(e.data[1], e.data[2], e.data[3], false);
     } else if(flow.length == 0) {
         setTimeout(worker.onmessage(e), 200);        
     } else {
