@@ -9,10 +9,10 @@
     <link rel="apple-touch-icon" href="Math++.png">
     <link rel="apple-touch-icon" sizes="192x192" href="Math++-192.png">
     <link rel="manifest" href="manifest.json">
-    <link href="index.css" rel="stylesheet" type="text/css">
-    <link href="Math++.css" rel="stylesheet" type="text/css">
-    <link rel="stylesheet" href="katex/katex.min.css">
     <link rel="stylesheet" href="mathquill/mathquill.css" />
+    <link rel="stylesheet" href="index.css" type="text/css">
+    <link rel="stylesheet" href="Math++.css" type="text/css">
+    <link rel="stylesheet" href="katex/katex.min.css">
     <script src="jquery.min.js"></script>
     <script src="mathquill/mathquill.js"></script>
     <script src="Settings.js"></script>
@@ -66,28 +66,26 @@
     <div>
         <textarea id="ExportImport" style="display:none;"></textarea>
         <p id="output"></p>
-        <div id="keyboard">
-            <span id="inputkeyboard"></span>
-            <button onclick="showhidemathkeypad()" class="stackelement">Show Math Keypad</button>
-        </div>
-        <div id="keypad" style="display:none;">
-            <span id="inputkeypad" style="grid-row: 1; grid-column: 1 / span 5"></span>
-            <button onclick="showhidemathkeypad()" style="grid-row: 2; grid-column: 1">Show default Keyboard
+        <div id="keypad">
+            <span id="input" style="grid-row: 1; grid-column: 1 / span 5"></span>
+            <input type="checkbox" id="switchinput"/>
+            <label for="switchinput">
                 <svg class="progress-ring"
                     width="24"
                     height="24">
                     <circle
                     class="progress-ring__circle"
-                    stroke="black"
+                    stroke="grey"
                     stroke-width="4"
                     fill="transparent"
                     r="10"
                     cx="12"
-                    cy="12"/>
+                    cy="12">
+                    </circle>
                 </svg>
-            </button>
+            </label>
             <button onclick="ConvertMathButton(editstate=!editstate)" style="grid-row: 2; grid-column: 5">Edit</button>
-            <input id="__Tab1" name="tab" type="radio" checked></input>
+            <input id="__Tab1" name="tab" type="radio" checked/>
             <label for="__Tab1" style="grid-row: 2; grid-column: 2">Tab1</label>
             <div style="grid-row: 3; grid-column: 1 / span 5">
                 <div></div>
@@ -139,7 +137,7 @@
                 <div></div>
                 <div></div>
             </div>
-            <input id="__Tab2" name="tab" type="radio"></input>
+            <input id="__Tab2" name="tab" type="radio"/>
             <label for="__Tab2" style="grid-row: 2; grid-column: 3">Tab2</label>
             <div style="grid-row: 3; grid-column: 1 / span 5">
                 <div></div>
@@ -191,7 +189,7 @@
                 <div></div>
                 <div></div>
             </div>
-            <input id="__All" name="tab" type="radio"></input>
+            <input id="__All" name="tab" type="radio"/>
             <label for="__All" style="grid-row: 2; grid-column: 4">All</label>
             <div style="grid-row: 3; grid-column: 1 / span 5" id="all">
             </div>

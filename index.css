@@ -42,7 +42,7 @@ input[type="radio"]:checked + label + div > div {
     border: dotted 1px black;
 }
 
-button, .btn {
+button, .btn, #switchinput + label {
     -webkit-appearance: none;
     padding: 2px;
     white-space: nowrap;
@@ -53,16 +53,43 @@ button, .btn {
     align-items: center;
 }
 
-button:active {
+/* button:active {
     background-color: #a8a8a8;
     transition-duration: 250ms;
-}
+} */
 
 .mathbtn {
     pointer-events:none;
+    font-size: 14px;
 }
 
 #keypad {
     display: grid;
     grid-template-columns: 1fr auto auto auto;
 }
+
+#switchinput {
+    /* display: none; */
+    opacity: 0;
+    grid-column: 1 / span 1;
+    width: 0;
+    height: 0;
+}
+
+#switchinput + label {
+    grid-column: 1 / span 1;
+    grid-row: 2;
+}
+
+#switchinput + label::before {
+    content: "Show Keypad ";
+}
+
+#switchinput:checked + label::before {
+    content: "Show / Use Keyboard ";
+}
+
+#switchinput:not(:checked) + label ~ * {
+    display: none;
+}
+

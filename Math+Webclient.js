@@ -3,38 +3,10 @@ var inputs = [];
 var inputSpan = null;
 var output = null;
 var inputMathField = null;
-var inputMathFieldkeypad = null;
-var inputMathFieldkeyboard = null;
-var keypad = null;
-var keyboard = null;
 var toggle = null;
 var settings = null;
 var flow = [];
 var lastnode = null;
-
-var enter = function() {
-    var enteredMath = inputMathField.latex();
-    inputs.push(enteredMath);
-    invoke(enteredMath);
-}
-
-var mqkeypad = {
-    substituteTextarea : function(){
-        var span = document.createElement("span");
-        span.tabIndex = 0;
-        return span;
-    },
-    handlers: {
-        enter: enter
-    }
-};
-
-var mqkeyboard = {
-    handlers: {
-        enter: enter
-    }
-};
-var showhidemathkeypad = null;
 
 var setProgress = null;
 
@@ -51,42 +23,60 @@ window.addEventListener('DOMContentLoaded', function() {
         circle.style.strokeDashoffset = offset;
     }
 
-    inputkeypad = document.getElementById('inputkeypad');
-    inputkeyboard = document.getElementById('inputkeyboard');
+    input = document.getElementById('input');
     if(typeof MathQuill !== 'undefined') {
         MQ = MathQuill.getInterface(2);
-        inputMathFieldkeypad = MQ.MathField(inputkeypad, mqkeypad);
-        inputMathField = inputMathFieldkeyboard = MQ.MathField(inputkeyboard, mqkeyboard);
+        inputMathField = MQ.MathField(input, {
+            handlers: {
+                enter: function() {
+                    var enteredMath = inputMathField.latex();
+                    inputs.push(enteredMath);
+                    invoke(enteredMath);
+                }
+            }
+        });
+        var switchinput = document.getElementById("switchinput");
+        var area = inputMathField.__controller.textarea;
+        var ctrlr = inputMathField.__controller;
+        var root = ctrlr.root, cursor = ctrlr.cursor;
+        var focus = function(e) {
+            ctrlr.blurred = false;
+            ctrlr.container.addClass('mq-focused');
+            if (!cursor.parent)
+                cursor.insAtRightEnd(root);
+            if (cursor.selection) {
+                cursor.selection.jQ.removeClass('mq-blur');
+                ctrlr.selectionChanged(); //re-select textarea contents after tabbing away and back
+            }
+            else
+                cursor.show();
+        };
+        var keypad = document.getElementById("keypad");
+        switchinput.addEventListener("focus", function(e) {
+            e.preventDefault();
+            inputMathField.focus();
+        }, true);
+        switchinput.onchange = function(e) {
+            e.preventDefault();
+            if(e.target.checked) {
+                inputMathField.__controller.textarea = $(keypad);
+                area.off("blur");
+                area[0].style.display = 'none';
+                focus();
+            } else {
+                inputMathField.__controller.textarea = area;
+                inputMathField.__controller.focusBlurEvents();
+                area[0].style.display = '';
+                inputMathField.focus();
+            }
+        }
     } else {
-        inputSpan.innerHTML = "Error unsupported platform";
+        alert("Error unsupported platform");
     }
     flow.push(output = document.getElementById('output'));
     toggle = document.getElementById('toggle');
     settings = getSettings();
 }, false);
-
-showhidemathkeypad = function() {
-    if(keyboard === null) {
-        keyboard = document.getElementById('keyboard');
-    }
-    if(keypad === null) {
-        keypad = document.getElementById('keypad');
-    }
-    if(keypad.style.display === 'none') {
-        var old = inputMathFieldkeyboard.latex();
-        keyboard.style.display = 'none';
-        keypad.style.display = '';
-        inputMathFieldkeypad.latex(old);
-        inputMathField = inputMathFieldkeypad;
-        window.scrollTo(0,document.body.scrollHeight);
-    } else {
-        var old = inputMathFieldkeypad.latex();
-        keypad.style.display = 'none';
-        keyboard.style.display = '';
-        inputMathFieldkeyboard.latex(old);
-        inputMathField = inputMathFieldkeyboard;
-    }
-}
 
 // var worker = new Worker('worker.js');
 var worker = new Worker('Math+Web.js');
@@ -102,7 +92,6 @@ worker.onerror = function(e) {
 }
 
 var lastid = 0;
-
 var progressmax = 1;
 var progresscur = 0;
 var updateProgress = function(prog) {
@@ -132,13 +121,16 @@ var setinvokeHandler = function(button, formula, parameter) {
     for(var i = 0; i < parameter; ++i) {
         keystroke.push("Left");
     }
-    button.onfocus = function() {
-        inputMathField.focus();
-    };
+    // button.onfocus = function() {
+    //     inputMathField.focus();
+    // };
+    // button.onfocus = function(e) {e.preventDefault()};
     var keys = keystroke.join(" ");
     button.onclick = function() {
-        wrttex(formula);
-        inputMathField.keystroke(keys);
+        setTimeout(function() {
+            wrttex(formula);
+            inputMathField.keystroke(keys);
+        });
     }
 }
 
