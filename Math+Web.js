@@ -8,10 +8,6 @@ var getstring = function(ptr) {
     }
     return builder.join("");
 }
-String.prototype.replaceAll = function(search, replacement) {
-    var target = this;
-    return target.replace(new RegExp(search, 'g'), replacement);
-};
 var environment = {
     env: {
         memory: bmemory, exp: Math.exp, pow: Math.pow, sqrt: Math.sqrt, log: Math.log, log2: Math.log2, log10: Math.log10, sin: Math.sin, cos: Math.cos, tan: Math.tan, sinh: Math.sinh, cosh: Math.cosh, tanh: Math.tanh, asin: Math.asin, acos: Math.acos, atan: Math.atan, atan2: Math.atan2, asinh: Math.asinh, acosh: Math.acosh, atanh: Math.atanh,

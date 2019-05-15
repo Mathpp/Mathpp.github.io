@@ -78,8 +78,8 @@ window.addEventListener('DOMContentLoaded', function() {
     settings = getSettings();
 }, false);
 
-// var worker = new Worker('worker.js');
-var worker = new Worker('Math+Web.js');
+var worker = new Worker('worker.js');
+// var worker = new Worker('Math+Web.js');
 
 worker.onerror = function(e) {
     if(flow.length > 1) {
