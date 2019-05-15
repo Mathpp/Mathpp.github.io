@@ -87,7 +87,7 @@ worker.onerror = function(e) {
     }
     output.appendChild(document.createTextNode("Failed: " + e.message));
     // flow[0].appendChild(document.createElement("br"));
-    window.scrollTo(0,document.body.scrollHeight);
+    output.parentElement.scrollTo(0,output.parentElement.scrollHeight);
     updateProgress(1);
 }
 
@@ -196,7 +196,7 @@ worker.onmessage = function(e) {
         }
         flow.length = 1;
         updateProgress(1);
-        window.scrollTo(0,document.body.scrollHeight);
+        output.parentElement.scrollTo(0,output.parentElement.scrollHeight);
     } else if(e.data[0] == -4) {
         appendMathButton(e.data[1], e.data[2], e.data[3], false);
     } else if(flow.length == 0) {
@@ -246,7 +246,7 @@ worker.onmessage = function(e) {
             show.appendChild(line);
         }
         // flow[i].appendChild(document.createElement("br"));
-        window.scrollTo(0,document.body.scrollHeight);
+        output.parentElement.scrollTo(0,output.parentElement.scrollHeight);
     }
 };
 
@@ -321,20 +321,20 @@ onbeforeunload = function(e) {
 }
 
 var wrttex = function(c) {
-    inputMathField.focus();
+    // inputMathField.focus();
     // inputMathField.typedText(c);
     inputMathField.write(c);
-    window.scrollTo(0,document.body.scrollHeight);
+    // window.scrollTo(0,document.body.scrollHeight);
 }
 
 var typetex = function(c) {
-    inputMathField.focus();
+    // inputMathField.focus();
     inputMathField.typedText(c);
-    window.scrollTo(0,document.body.scrollHeight);
+    // window.scrollTo(0,document.body.scrollHeight);
 }
 
 var cmdtex = function(c) {
-    inputMathField.focus();
+    // inputMathField.focus();
     inputMathField.cmd(c);
-    window.scrollTo(0,document.body.scrollHeight);
+    // window.scrollTo(0,document.body.scrollHeight);
 }
