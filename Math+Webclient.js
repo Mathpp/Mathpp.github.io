@@ -23,7 +23,7 @@ window.addEventListener('DOMContentLoaded', function() {
         const offset = circumference - percent / 100 * circumference;
         circle.style.strokeDashoffset = offset;
     }
-    
+
     input = document.getElementById('input');
     if(typeof MathQuill !== 'undefined') {
         MQ = MathQuill.getInterface(2);
@@ -210,10 +210,22 @@ worker.onmessage = function(e) {
         }
     } else if(e.data[0] == -2) {
         if(1 < flow.length && lastnode != null){
-            flow[0].appendChild(lastnode.cloneNode(true));
-            // flow[0].appendChild(document.createElement("br"));
+            if(lastnode.children.length != 0) {
+                flow[i].appendChild(lastnode.cloneNode(true));
+                flow[i].appendChild(document.createElement("br"));
+            } else {
+                var f = flow[i].lastElementChild;
+                var node = lastnode;
+                lastnode.parentElement.onshow.push(function() {
+                    var next = f.nextElementSibling;
+                    f.parentElement.insertBefore(node.cloneNode(true), next);
+                    f.parentElement.insertBefore(document.createElement("br"), next);
+                });
+            }
             lastnode = null;
-            output.parentElement.scrollTo(0,output.parentElement.scrollHeight);
+            if(typeof output.parentElement.scrollTo !== "undefined") {
+                output.parentElement.scrollTo(0,output.parentElement.scrollHeight);
+            }
         }
         flow.length = 1;
         updateProgress(1);
@@ -243,30 +255,50 @@ worker.onmessage = function(e) {
                 var content = document.createElement("div");
                 content.classList.add("content");
                 div.appendChild(content);
+                content.onshow = [];
+                checkbox.onchange = function(e) {
+                    if(checkbox.checked) {
+                        content.onshow.forEach(function(handler) {
+                            setTimeout(handler);
+                        });
+                        content.onshow = [];
+                    }
+                };
                 flow.push(content);
             } while(i >= flow.length);
         } else if(i + 1 < flow.length && lastnode != null){
-            flow[i].appendChild(lastnode.cloneNode(true));
-            // flow[i].appendChild(document.createElement("br"));
+            if(lastnode.children.length != 0) {
+                flow[i].appendChild(lastnode.cloneNode(true));
+                flow[i].appendChild(document.createElement("br"));
+            } else {
+                var f = flow[i].lastElementChild;
+                var node = lastnode;
+                lastnode.parentElement.onshow.push(function() {
+                    var next = f.nextElementSibling;
+                    f.parentElement.insertBefore(node.cloneNode(true), next);
+                    f.parentElement.insertBefore(document.createElement("br"), next);
+                });
+            }
         }
         flow.length = i + 1;
         var line = document.createElement("span");
         flow[i].appendChild(line);
-        katex.render(text, line, {
-            throwOnError: false
-        });
+        var onshow = function() {
+            MQ.StaticMath(line, { mouseEvents:true }).latex(text);
+        };
+        if(getComputedStyle(flow[i]).display === "none") {
+            flow[i].onshow.push(onshow);
+        } else {
+            onshow();
+        }
         lastnode = line;
         if(show != null) {
-            var line = document.createElement("span");
-            line.classList.add("ncopy");
-            // show.appendChild(line.cloneNode(true));
-            katex.render(">" + text, line, {
-                throwOnError: false
-            });
-            show.appendChild(line);
+            show.appendChild(document.createTextNode("> Show Steps"));
         }
-        // flow[i].appendChild(document.createElement("br"));
-        output.parentElement.scrollTo(0,output.parentElement.scrollHeight);
+        flow[i].appendChild(document.createElement("br"));
+        if(typeof output.parentElement.scrollTo !== "undefined") {
+            output.parentElement.scrollTo(0,output.parentElement.scrollHeight);
+        }
     }
 };
 
