@@ -7,6 +7,7 @@ var toggle = null;
 var settings = null;
 var flow = [];
 var lastnode = null;
+var all = null;
 
 var setProgress = null;
 
@@ -22,7 +23,7 @@ window.addEventListener('DOMContentLoaded', function() {
         const offset = circumference - percent / 100 * circumference;
         circle.style.strokeDashoffset = offset;
     }
-
+    
     input = document.getElementById('input');
     if(typeof MathQuill !== 'undefined') {
         MQ = MathQuill.getInterface(2);
@@ -70,6 +71,22 @@ window.addEventListener('DOMContentLoaded', function() {
                 inputMathField.focus();
             }
         }
+        all = document.getElementById("all");
+        all.onshow = [];
+        radius = keypad.querySelectorAll('input[name="tab"]');
+        radius.forEach(function(el) {
+            el.onchange = function(e) {
+                if(el.checked) {
+                    if(typeof el.nextElementSibling !== "undefined" && typeof el.nextElementSibling.nextElementSibling !== "undefined" &&  typeof el.nextElementSibling.nextElementSibling.onshow !== "undefined") {
+                        el.nextElementSibling.nextElementSibling.onshow.forEach(function(handler) {
+                            setTimeout(handler);
+                        });
+                        el.nextElementSibling.nextElementSibling.onshow = [];
+                    }
+                }
+            };
+        });
+
     } else {
         alert("Error unsupported platform");
     }
@@ -121,14 +138,10 @@ var setinvokeHandler = function(button, formula, parameter) {
     for(var i = 0; i < parameter; ++i) {
         keystroke.push("Left");
     }
-    // button.onfocus = function() {
-    //     inputMathField.focus();
-    // };
-    // button.onfocus = function(e) {e.preventDefault()};
     var keys = keystroke.join(" ");
     button.onclick = function() {
-        setTimeout(function() {
-            wrttex(formula);
+        setTimeout(function() {;
+            inputMathField.write(formula);
             inputMathField.keystroke(keys);
         });
     }
@@ -140,9 +153,16 @@ var appendMathButton = function (icon, formula, parameter, draggable) {
     button.setAttribute('parameter', parameter.toString());
     var line = document.createElement("div");
     button.appendChild(line);
-    document.getElementById("all").appendChild(button);
+    all.appendChild(button);
     line.classList.add("mathbtn");
-    MQ.StaticMath(line, { mouseEvents:false }).latex(icon);
+    var onshow = function() {
+        MQ.StaticMath(line, { mouseEvents:false }).latex(icon);
+    };
+    if(getComputedStyle(all).display === "none") {
+        all.onshow.push(onshow);
+    } else {
+        onshow();
+    }
     if(!draggable) {
         setinvokeHandler(button, formula, parameter);
     } else {
@@ -193,10 +213,10 @@ worker.onmessage = function(e) {
             flow[0].appendChild(lastnode.cloneNode(true));
             // flow[0].appendChild(document.createElement("br"));
             lastnode = null;
+            output.parentElement.scrollTo(0,output.parentElement.scrollHeight);
         }
         flow.length = 1;
         updateProgress(1);
-        output.parentElement.scrollTo(0,output.parentElement.scrollHeight);
     } else if(e.data[0] == -4) {
         appendMathButton(e.data[1], e.data[2], e.data[3], false);
     } else if(flow.length == 0) {
@@ -261,12 +281,15 @@ var Reset = function() {
     if(toggle !== null) toggle.checked = false;
     inputs = [];
     worker.postMessage([1]);
+    while (all.lastElementChild) {
+        all.removeChild(all.lastElementChild);
+    }
 };
 
 var Clear = function() {
     if(toggle !== null) toggle.checked = false;
-    while (output.firstChild) {
-        output.removeChild(output.firstChild);
+    while (output.lastElementChild) {
+        output.removeChild(output.lastElementChild);
     }
 };
 
@@ -288,7 +311,7 @@ var Export = function() {
     if(exim.style.display == 'none') {
         exim.style.display = 'initial';
     }
-    exim.value=JSON.stringify(inputs);
+    exim.value = JSON.stringify(inputs);
 };
 
 var configure = function(config) {
@@ -317,24 +340,4 @@ onbeforeunload = function(e) {
     try{
         localStorage.setItem("inputs", JSON.stringify(inputs));
     } catch(e) {}
-    inputs = null;
-}
-
-var wrttex = function(c) {
-    // inputMathField.focus();
-    // inputMathField.typedText(c);
-    inputMathField.write(c);
-    // window.scrollTo(0,document.body.scrollHeight);
-}
-
-var typetex = function(c) {
-    // inputMathField.focus();
-    inputMathField.typedText(c);
-    // window.scrollTo(0,document.body.scrollHeight);
-}
-
-var cmdtex = function(c) {
-    // inputMathField.focus();
-    inputMathField.cmd(c);
-    // window.scrollTo(0,document.body.scrollHeight);
 }
