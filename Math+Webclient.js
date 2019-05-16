@@ -211,10 +211,10 @@ worker.onmessage = function(e) {
     } else if(e.data[0] == -2) {
         if(1 < flow.length && lastnode != null){
             if(lastnode.children.length != 0) {
-                flow[i].appendChild(lastnode.cloneNode(true));
-                flow[i].appendChild(document.createElement("br"));
+                flow[0].appendChild(lastnode.cloneNode(true));
+                flow[0].appendChild(document.createElement("br"));
             } else {
-                var f = flow[i].lastElementChild;
+                var f = flow[0].lastElementChild;
                 var node = lastnode;
                 lastnode.parentElement.onshow.push(function() {
                     var next = f.nextElementSibling;
