@@ -96,15 +96,16 @@ window.addEventListener('DOMContentLoaded', function() {
 }, false);
 
 var worker = new Worker('worker.js');
-// var worker = new Worker('Math+Web.js');
 
 worker.onerror = function(e) {
     if(flow.length > 1) {
         flow.length = 1;
     }
     output.appendChild(document.createTextNode("Failed: " + e.message));
-    // flow[0].appendChild(document.createElement("br"));
-    output.parentElement.scrollTo(0,output.parentElement.scrollHeight);
+    output.appendChild(document.createElement("br"));
+    if(typeof output.parentElement.scrollTo !== "undefined") {
+        output.parentElement.scrollTo(0,output.parentElement.scrollHeight);
+    }
     updateProgress(1);
 }
 
@@ -112,12 +113,11 @@ var lastid = 0;
 var progressmax = 1;
 var progresscur = 0;
 var updateProgress = function(prog) {
-    if(progresscur == progressmax) {
-        progresscur = 0;
-    }
     progresscur += prog;
-    // progressmax -= prog;
-    setProgress(100 * progresscur / progressmax);
+    if(progresscur == progressmax) {
+        progresscur = progressmax = 0;
+    }
+    setProgress(100 * (progressmax == 0 ? 1 : (progresscur / progressmax)));
 }
 
 loadState = function(inputs) {
@@ -191,67 +191,89 @@ var ConvertMathButton = function(draggable) {
 };
 
 var editstate = false;
+var lastReturnValue = null;
+
+var printReturnValue = function() {
+    if(lastReturnValue != null) {
+        var line = document.createElement("span");
+        flow[flow.length - 1].appendChild(line);
+        var onshow = function() {
+            MQ.StaticMath(line, { mouseEvents:true }).latex(onshow.lastReturnValue);
+        };
+        onshow.lastReturnValue = lastReturnValue;
+        if(flow.length > 1) {
+            flow[flow.length - 1].onshow.push(onshow);
+        } else {
+            onshow();
+        }
+        lastReturnValue = null;
+    }
+}
 
 worker.onmessage = function(e) {
-    if(e.data[0] == -1) {
-        updateProgress(1);
-        var linput;
-        try {
-            linput = localStorage.getItem("inputs");
-        } catch(e) {
-            linput = null;
-        }
-        if (linput == null) {
-            LoadDefault();
-        } else {
-            var ninputs = JSON.parse(linput);
-            loadState(ninputs);
-            inputs.push.apply(inputs, ninputs);
-        }
-    } else if(e.data[0] == -2) {
-        if(1 < flow.length && lastnode != null){
-            if(lastnode.children.length != 0) {
-                flow[0].appendChild(lastnode.cloneNode(true));
-                flow[0].appendChild(document.createElement("br"));
-            } else {
-                var f = flow[0].lastElementChild;
-                var node = lastnode;
-                lastnode.parentElement.onshow.push(function() {
-                    var next = f.nextElementSibling;
-                    f.parentElement.insertBefore(node.cloneNode(true), next);
-                    f.parentElement.insertBefore(document.createElement("br"), next);
-                });
+    switch (e.data[0]) {
+        case -1:
+            updateProgress(1);
+            var linput;
+            try {
+                linput = localStorage.getItem("inputs");
+            } catch(e) {
+                linput = null;
             }
-            lastnode = null;
+            if (linput == null) {
+                LoadDefault();
+            } else {
+                var ninputs = JSON.parse(linput);
+                loadState(ninputs);
+                inputs.push.apply(inputs, ninputs);
+            }
+            break;
+        case -2:
+            printReturnValue();
             if(typeof output.parentElement.scrollTo !== "undefined") {
                 output.parentElement.scrollTo(0,output.parentElement.scrollHeight);
             }
-        }
-        flow.length = 1;
-        updateProgress(1);
-    } else if(e.data[0] == -4) {
-        appendMathButton(e.data[1], e.data[2], e.data[3], false);
-    } else if(flow.length == 0) {
-        setTimeout(worker.onmessage(e), 200);        
-    } else {
-        var text = e.data[1];
-        var i = e.data[0];
-        var show = null;
-        if(i >= flow.length) {
-            do {
+            flow.length = 1;
+            updateProgress(1);
+            break;
+        case -4:
+            appendMathButton(e.data[1], e.data[2], e.data[3], false);
+        break;
+    default:
+        if(flow.length == 0) {
+            setTimeout(worker.onmessage(e), 200);        
+        } else {
+            var text = e.data[1];
+            var cmd = e.data[0];
+            // Opens Subcalculation
+            if(cmd == 0) {
+                printReturnValue();
                 var div = document.createElement("div");
                 flow[flow.length - 1].appendChild(div);
                 var checkbox = document.createElement("input");
                 checkbox.type = "checkbox";
                 div.appendChild(checkbox);
                 var label = document.createElement("label");
-                label.htmlFor = checkbox.id = "collapsibledre" + (lastid++);
-                show = document.createElement("div");
+                label.htmlFor = checkbox.id = "__Subcalculation_" + (lastid++);
+                var show = document.createElement("div");
                 label.appendChild(show);
                 var hide = document.createElement("div");
                 hide.innerText = "▼";
                 label.appendChild(hide);
                 div.appendChild(label);
+                if(text != null) {
+                    var line = document.createElement("span");
+                    show.appendChild(line);
+                    var onshow = function() {
+                        MQ.StaticMath(line, { mouseEvents:true }).latex(text);
+                    };
+                    if(flow.length > 1) {
+                        flow[flow.length - 1].onshow.push(onshow);
+                    } else {
+                        onshow();
+                    }
+                    lastReturnValue = null;
+                }
                 var content = document.createElement("div");
                 content.classList.add("content");
                 div.appendChild(content);
@@ -265,40 +287,32 @@ worker.onmessage = function(e) {
                     }
                 };
                 flow.push(content);
-            } while(i >= flow.length);
-        } else if(i + 1 < flow.length && lastnode != null){
-            if(lastnode.children.length != 0) {
-                flow[i].appendChild(lastnode.cloneNode(true));
-                flow[i].appendChild(document.createElement("br"));
+            } else if(cmd == 1){
+                if(text != null) {
+                    printReturnValue();
+                    lastReturnValue = text;
+                }
+                flow.pop();
+            } else if(text != null) {
+                var line = document.createElement("span");
+                flow[flow.length - 1].appendChild(line);
+                var onshow = function() {
+                    MQ.StaticMath(line, { mouseEvents:true }).latex(text);
+                };
+                if(getComputedStyle(flow[flow.length - 1]).display === "none") {
+                    flow[flow.length - 1].onshow.push(onshow);
+                } else {
+                    onshow();
+                }
+                flow[flow.length - 1].appendChild(document.createElement("br"));
+                if(typeof output.parentElement.scrollTo !== "undefined") {
+                    output.parentElement.scrollTo(0,output.parentElement.scrollHeight);
+                }
             } else {
-                var f = flow[i].lastElementChild;
-                var node = lastnode;
-                lastnode.parentElement.onshow.push(function() {
-                    var next = f.nextElementSibling;
-                    f.parentElement.insertBefore(node.cloneNode(true), next);
-                    f.parentElement.insertBefore(document.createElement("br"), next);
-                });
+                console.log("Failed(" + cmd + ")");
             }
         }
-        flow.length = i + 1;
-        var line = document.createElement("span");
-        flow[i].appendChild(line);
-        var onshow = function() {
-            MQ.StaticMath(line, { mouseEvents:true }).latex(text);
-        };
-        if(getComputedStyle(flow[i]).display === "none") {
-            flow[i].onshow.push(onshow);
-        } else {
-            onshow();
-        }
-        lastnode = line;
-        if(show != null) {
-            show.appendChild(document.createTextNode("> Show Steps"));
-        }
-        flow[i].appendChild(document.createElement("br"));
-        if(typeof output.parentElement.scrollTo !== "undefined") {
-            output.parentElement.scrollTo(0,output.parentElement.scrollHeight);
-        }
+        break;
     }
 };
 

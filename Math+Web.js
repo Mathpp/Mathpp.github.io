@@ -15,13 +15,11 @@ var environment = {
             return a % b;
         },
         PrintLine: function (a, b) {
-            if (b != 0) {
-                postMessage([a, getstring(b)]);
-            }
+            postMessage([a, b != 0 ? getstring(b) : null]);
         },
         OnDefine: function(wlabel, wwrite, depth) {
             var write = getstring(wwrite);
-            postMessage([-4, getstring(wlabel), /* depth > 0 ?  */"\\formula{" + write.replaceAll("\t","\\parameter{}") + "}" /* : write */, depth]);
+            postMessage([-4, getstring(wlabel), /* depth > 0 ?  */"\\formula{" + write.replace(/\t/g,"\\parameter{}") + "}" /* : write */, depth]);
         }
     }
 };

@@ -208,17 +208,17 @@ a:hover {
   overflow-y: inherit;
 } */
 
-[id^="collapsible"],                        /* HIDE CHECKBOX */
-[id^="collapsible"] ~ .content,                /* HIDE LIST */
-[id^="collapsible"] + label  div + div,   /* HIDE "Collapse" */
-[id^="collapsible"]:checked + label div {   /* HIDE "Expand" (IF CHECKED) */
+[id^="__Subcalculation_"],                        /* HIDE CHECKBOX */
+[id^="__Subcalculation_"] ~ .content,                /* HIDE LIST */
+[id^="__Subcalculation_"] + label  div + div,   /* HIDE "Collapse" */
+[id^="__Subcalculation_"]:checked + label div {   /* HIDE "Expand" (IF CHECKED) */
   display:none;
   white-space: nowrap;
 }
-[id^="collapsible"]:checked + label div + div {
+[id^="__Subcalculation_"]:checked + label div + div {
   display:inline-block;                 /* SHOW "Collapse" (IF CHECKED) */
 }
-[id^="collapsible"]:checked ~ .content {
+[id^="__Subcalculation_"]:checked ~ .content {
   display:block;                        /* SHOW LIST (IF CHECKED) */
 }
 .content {

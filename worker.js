@@ -20,8 +20,4 @@ if (typeof fetch !== 'function') {
     }
     importScripts("polyfills/fetch.umd.js");
 }
-String.prototype.replaceAll = function(search, replacement) {
-    var target = this;
-    return target.replace(new RegExp(search, 'g'), replacement);
-};
 importScripts("emscripten/Math+Web.js");
