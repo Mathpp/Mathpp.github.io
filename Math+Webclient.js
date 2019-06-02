@@ -343,7 +343,7 @@ var Import = function() {
     if(toggle !== null) toggle.checked = false;
     var exim = document.getElementById('ExportImport');
     if(exim.style.display == 'none') {
-        exim.style.display = 'initial';
+        exim.style.display = '';
     } else {
         var ninputs = JSON.parse(exim.value);
         loadState(ninputs);
@@ -355,7 +355,7 @@ var Export = function() {
     if(toggle !== null) toggle.checked = false;
     var exim = document.getElementById('ExportImport');
     if(exim.style.display == 'none') {
-        exim.style.display = 'initial';
+        exim.style.display = '';
     }
     exim.value = JSON.stringify(inputs);
 };
