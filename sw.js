@@ -32,9 +32,6 @@ self.addEventListener('install', function (event) {
         if(await caches.has(PREALPHACACHE_NAME)) {
             await caches.delete(PREALPHACACHE_NAME);
         }
-        CACHE_NAME = await (await fetch("https://api.github.com/repos/mathpp/mathpp.github.io/commits/master", { headers: {
-            "Accept": "application/vnd.github.VERSION.sha"
-        } })).text();
         var cache = await caches.open(CACHE_NAME);
         await cache.delete();
         await cache.addAll(urlsToCache);
@@ -43,7 +40,11 @@ self.addEventListener('install', function (event) {
 
 self.addEventListener('fetch', function (event) {
     event.respondWith(
-        fetch(event.request).catch(function(error){
+        fetch(event.request).then(function(r) {
+            caches.open(CACHE_NAME).then(function(c) {
+                c.put(event.request, r);
+            });
+        }).catch(function(){
             return caches.match(event.request);
         })
     );
@@ -55,7 +56,9 @@ self.addEventListener('message', function (event) {
             event.waitUntil(
                 caches.open(CACHE_NAME)
                     .then(function (cache) {
-                        return cache.addAll(urlsToCache);
+                        return cache.delete().then(function() {
+                            return cache.addAll(urlsToCache);
+                        });
                     })
             );
             break;

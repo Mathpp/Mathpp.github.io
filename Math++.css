@@ -113,8 +113,6 @@ a:hover {
   top: 0;
   margin: -5px 0 0 -5px;
   padding: 5px 10px 10px 35px;
-/*   padding-bottom: 10px;
-  padding-top: 40px; */
   background-color: #b1b1b1;
   list-style-type: none;
   -webkit-font-smoothing: antialiased;
@@ -157,36 +155,6 @@ a:hover {
   transform: none;
 }
 
-/* .back {
-  filter: blur(5px);
-  z-index: -1;
-} */
-
-/* .katex-display > .katex {
-  display: inline-block;
-  white-space: nowrap;
-  max-width: 100%;
-  overflow-x: auto;
-  text-align: initial;
-} */
-#output * .katex {
-  display: block;
-  white-space: nowrap;
-  max-width: 100%;
-  overflow-x: auto;
-  overflow-y: hidden;
-  /* text-align: initial; */
-
-  /* font: normal 1.21em KaTeX_Main, Times New Roman, serif; */
-  /* line-height: 1.2; */
-  /* white-space: normal; */
-  /* text-indent: 0; */
-}
-
-/* [id^="collapsible"] + label div {
-  user-select: none;
-  cursor: pointer;
-} */
 
 .progress-ring__circle {
   transition: 0.35s stroke-dashoffset;
@@ -195,34 +163,40 @@ a:hover {
 }
 
 .ncopy *{
-  /* pointer-events: none; */
   user-select: none !important;
-  /* cursor: pointer; */
 }
 
-/* [id^="collapsible"] + label div .katex {
-  display: inherit;
-  white-space: inherit;
-  max-width: inherit;
-  overflow-x: inherit;
-  overflow-y: inherit;
-} */
+.__Subcalculation_header {
+  display: flex;
+  align-items: center;
+}
 
-[id^="__Subcalculation_"],                        /* HIDE CHECKBOX */
-[id^="__Subcalculation_"] ~ .content,                /* HIDE LIST */
-[id^="__Subcalculation_"] + label  div + div,   /* HIDE "Collapse" */
-[id^="__Subcalculation_"]:checked + label div {   /* HIDE "Expand" (IF CHECKED) */
-  display:none;
-  white-space: nowrap;
-}
-[id^="__Subcalculation_"]:checked + label div + div {
-  display:inline-block;                 /* SHOW "Collapse" (IF CHECKED) */
-}
-[id^="__Subcalculation_"]:checked ~ .content {
-  display:block;                        /* SHOW LIST (IF CHECKED) */
-}
 .content {
   border-radius: 10px;
   border: 2px solid black;
-  padding: 10px
+  padding: 10px;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+[id^="__Subcalculation_"],
+[id^="__Subcalculation_"] ~ .content
+{
+  display: none;
+  white-space: nowrap;
+}
+
+[id^="__Subcalculation_"] + .__Subcalculation_header > label div {
+  float: left;
+  font-size: 200%;
+  transition-duration: 100ms;
+  transform: rotate(0deg);
+}
+
+[id^="__Subcalculation_"]:checked + .__Subcalculation_header > label div {
+  transform: rotate(90deg);
+}
+
+[id^="__Subcalculation_"]:checked ~ .content {
+  display: block;
 }

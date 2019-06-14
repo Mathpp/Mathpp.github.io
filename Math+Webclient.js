@@ -255,15 +255,16 @@ worker.onmessage = function(e) {
                 div.appendChild(checkbox);
                 var label = document.createElement("label");
                 label.htmlFor = checkbox.id = "__Subcalculation_" + (lastid++);
+                var header = document.createElement("div");
+                header.classList.add("__Subcalculation_header");
                 var show = document.createElement("div");
                 label.appendChild(show);
-                var hide = document.createElement("div");
-                hide.innerText = "▼";
-                label.appendChild(hide);
-                div.appendChild(label);
+                show.innerHTML = ">";
+                header.appendChild(label);
+                div.appendChild(header);
                 if(text != null) {
                     var line = document.createElement("span");
-                    show.appendChild(line);
+                    header.appendChild(line);
                     var onshow = function() {
                         MQ.StaticMath(line, { mouseEvents:true }).latex(text);
                     };
