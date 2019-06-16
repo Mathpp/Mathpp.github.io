@@ -41,8 +41,9 @@ self.addEventListener('install', function (event) {
 self.addEventListener('fetch', function (event) {
     event.respondWith(
         fetch(event.request).then(function(r) {
-            caches.open(CACHE_NAME).then(function(c) {
-                c.put(event.request, r);
+            return caches.open(CACHE_NAME).then(function(c) {
+                c.put(event.request, r.clone());
+                return r;
             });
         }).catch(function(){
             return caches.match(event.request);
@@ -54,13 +55,12 @@ self.addEventListener('message', function (event) {
     switch (event.data) {
         case 'update':
             event.waitUntil(
-                caches.open(CACHE_NAME)
-                    .then(function (cache) {
-                        return cache.delete().then(function() {
-                            return cache.addAll(urlsToCache);
-                        });
+                caches.delete(CACHE_NAME).then(function() {
+                    return caches.open(CACHE_NAME).then(function (cache) {
+                        return cache.addAll(urlsToCache);
                     })
-            );
+                }
+            ));
             break;
 
         default:
