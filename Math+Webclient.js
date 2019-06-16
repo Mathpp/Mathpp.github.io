@@ -90,12 +90,20 @@ window.addEventListener('DOMContentLoaded', function() {
     } else {
         alert("Error unsupported platform");
     }
-    flow.push(output = document.getElementById('output'));
+    output = document.getElementById('output');
+    output.mq = [];
+    flow.push(output);
     toggle = document.getElementById('toggle');
     settings = getSettings();
 }, false);
 
-var worker = new Worker('worker.js');
+var worker = null;
+if(navigator.userAgent == "webkitapp") {
+    worker = [];
+    worker.postMessage = webkit.messageHandlers.webkitapp.postMessage;
+} else {
+    worker = new Worker('worker.js');
+}
 
 worker.onerror = function(e) {
     if(flow.length > 1) {
@@ -121,16 +129,16 @@ var updateProgress = function(prog) {
 }
 
 loadState = function(inputs) {
-    worker.postMessage([4]);
+    worker.postMessage({ type: "hidesteps" });
     inputs.forEach(function(input){
         if (input instanceof Array && input.length == config.length) {
-            worker.postMessage([2, input]);
-            worker.postMessage([4]);
+            worker.postMessage({ type: "configure", "settings": input });
+            worker.postMessage({ type: "hidesteps" });
         } else {
             invoke(input);
         }
     });
-    worker.postMessage([3]);
+    worker.postMessage({ type: "showsteps" });
 }
 
 var setinvokeHandler = function(button, formula, parameter) {
@@ -198,7 +206,9 @@ var printReturnValue = function() {
         var line = document.createElement("span");
         flow[flow.length - 1].appendChild(line);
         var onshow = function() {
-            MQ.StaticMath(line, { mouseEvents:true }).latex(onshow.lastReturnValue);
+            var mathfield = MQ.StaticMath(line, { mouseEvents:true });
+            output.mq.push(mathfield)
+            mathfield.latex(onshow.lastReturnValue);
         };
         onshow.lastReturnValue = lastReturnValue;
         if(flow.length > 1) {
@@ -211,8 +221,8 @@ var printReturnValue = function() {
 }
 
 worker.onmessage = function(e) {
-    switch (e.data[0]) {
-        case -1:
+    switch (e.data.type) {
+        case "loaded":
             updateProgress(1);
             var linput;
             try {
@@ -228,7 +238,7 @@ worker.onmessage = function(e) {
                 inputs.push.apply(inputs, ninputs);
             }
             break;
-        case -2:
+        case "success":
             printReturnValue();
             if(typeof output.parentElement.scrollTo !== "undefined") {
                 output.parentElement.scrollTo(0,output.parentElement.scrollHeight);
@@ -236,15 +246,15 @@ worker.onmessage = function(e) {
             flow.length = 1;
             updateProgress(1);
             break;
-        case -4:
-            appendMathButton(e.data[1], e.data[2], e.data[3], false);
+        case "ondefine":
+            appendMathButton(e.data.label, e.data.formula, e.data.count, false);
         break;
     default:
         if(flow.length == 0) {
             setTimeout(worker.onmessage(e), 200);        
         } else {
-            var text = e.data[1];
-            var cmd = e.data[0];
+            var text = e.data.data[1];
+            var cmd = e.data.data[0];
             // Opens Subcalculation
             if(cmd == 0) {
                 printReturnValue();
@@ -266,7 +276,9 @@ worker.onmessage = function(e) {
                     var line = document.createElement("span");
                     header.appendChild(line);
                     var onshow = function() {
-                        MQ.StaticMath(line, { mouseEvents:true }).latex(text);
+                        var mathfield = MQ.StaticMath(line, { mouseEvents:true });
+                        output.mq.push(mathfield)
+                        mathfield.latex(text);
                     };
                     if(flow.length > 1) {
                         flow[flow.length - 1].onshow.push(onshow);
@@ -298,7 +310,9 @@ worker.onmessage = function(e) {
                 var line = document.createElement("span");
                 flow[flow.length - 1].appendChild(line);
                 var onshow = function() {
-                    MQ.StaticMath(line, { mouseEvents:true }).latex(text);
+                    var mathfield = MQ.StaticMath(line, { mouseEvents:true });
+                    output.mq.push(mathfield)
+                    mathfield.latex(text);
                 };
                 if(getComputedStyle(flow[flow.length - 1]).display === "none") {
                     flow[flow.length - 1].onshow.push(onshow);
@@ -321,13 +335,13 @@ var invoke = function(enteredMath) {
     if(toggle !== null) toggle.checked = false;
     updateProgress(0);
     progressmax++;
-    worker.postMessage([0,enteredMath]);
+    worker.postMessage({ type: "invoke", expression: enteredMath });
 };
 
 var Reset = function() {
     if(toggle !== null) toggle.checked = false;
     inputs = [];
-    worker.postMessage([1]);
+    worker.postMessage({ type: "reset" });
     while (all.lastElementChild) {
         all.removeChild(all.lastElementChild);
     }
@@ -363,12 +377,12 @@ var Export = function() {
 
 var configure = function(config) {
     inputs.push(config);
-    worker.postMessage([2, config]);
+    worker.postMessage({ type: "configure", "settings": config });
 }
 
 var LoadDefault = function() {
     configure(config);
-    worker.postMessage([4]);
+    worker.postMessage({ type: "hidesteps" });
     // Load German Defaults
     if(toggle !== null) toggle.checked = false;
     return fetch("Default.Math++").then(function(r){
@@ -378,7 +392,7 @@ var LoadDefault = function() {
                 invoke(line);
             });
             // Load Custom Settings
-            worker.postMessage([3]);
+            worker.postMessage({ type: "showsteps" });
         });
     });
 };
