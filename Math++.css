@@ -155,6 +155,9 @@ a:hover {
   transform: none;
 }
 
+#menuToggle input ~ ul > a {
+  cursor: pointer;
+}
 
 .progress-ring__circle {
   transition: 0.35s stroke-dashoffset;
@@ -169,14 +172,23 @@ a:hover {
 .__Subcalculation_header {
   display: flex;
   align-items: center;
+  overflow-y: scroll;
 }
 
 .content {
-  border-radius: 10px;
-  border: 2px solid black;
-  padding: 10px;
-  overflow: hidden;
+  border-radius: 2px;
+  border: 1px solid black;
+  padding: 2px;
   box-sizing: border-box;
+}
+
+.__Subcalculation {
+  display: flex;
+  flex-direction: column-reverse;
+}
+
+.__Subcalculation  >.content:empty + .__Subcalculation_header > label div {
+  display: none;
 }
 
 [id^="__Subcalculation_"],
@@ -186,14 +198,17 @@ a:hover {
   white-space: nowrap;
 }
 
-[id^="__Subcalculation_"] + .__Subcalculation_header > label div {
+[id^="__Subcalculation_"] ~ .__Subcalculation_header > label div {
   float: left;
   font-size: 200%;
   transition-duration: 100ms;
+  -moz-user-select: none;
+  -webkit-user-select: none;
+  user-select: none;
   transform: rotate(0deg);
 }
 
-[id^="__Subcalculation_"]:checked + .__Subcalculation_header > label div {
+[id^="__Subcalculation_"]:checked ~ .__Subcalculation_header > label div {
   transform: rotate(90deg);
 }
 
