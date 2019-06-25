@@ -100,7 +100,9 @@ window.addEventListener('DOMContentLoaded', function() {
 var worker = null;
 if(navigator.userAgent == "webkitapp") {
     worker = [];
-    worker.postMessage = webkit.messageHandlers.webkitapp.postMessage;
+    worker.postMessage = function(message) {
+        webkit.messageHandlers.webkitapp.postMessage(message);
+    };
 } else {
     worker = new Worker('worker.js');
 }
@@ -251,7 +253,9 @@ worker.onmessage = function(e) {
         break;
     default:
         if(flow.length == 0) {
-            setTimeout(worker.onmessage(e), 200);        
+            setTimeout(function() {
+                worker.onmessage(e)
+            }, 200);
         } else {
             var text = e.data.data[1];
             var cmd = e.data.data[0];
@@ -259,6 +263,7 @@ worker.onmessage = function(e) {
             if(cmd == 0) {
                 printReturnValue();
                 var div = document.createElement("div");
+                div.classList.add("__Subcalculation");
                 flow[flow.length - 1].appendChild(div);
                 var checkbox = document.createElement("input");
                 checkbox.type = "checkbox";
@@ -271,7 +276,6 @@ worker.onmessage = function(e) {
                 label.appendChild(show);
                 show.innerHTML = ">";
                 header.appendChild(label);
-                div.appendChild(header);
                 if(text != null) {
                     var line = document.createElement("span");
                     header.appendChild(line);
@@ -283,13 +287,14 @@ worker.onmessage = function(e) {
                     if(flow.length > 1) {
                         flow[flow.length - 1].onshow.push(onshow);
                     } else {
-                        onshow();
+                        setTimeout(onshow, 0);
                     }
                     lastReturnValue = null;
                 }
                 var content = document.createElement("div");
                 content.classList.add("content");
                 div.appendChild(content);
+                div.appendChild(header);
                 content.onshow = [];
                 checkbox.onchange = function(e) {
                     if(checkbox.checked) {
@@ -317,7 +322,7 @@ worker.onmessage = function(e) {
                 if(getComputedStyle(flow[flow.length - 1]).display === "none") {
                     flow[flow.length - 1].onshow.push(onshow);
                 } else {
-                    onshow();
+                    setTimeout(onshow, 0);
                 }
                 flow[flow.length - 1].appendChild(document.createElement("br"));
                 if(typeof output.parentElement.scrollTo !== "undefined") {

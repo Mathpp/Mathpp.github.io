@@ -8,8 +8,6 @@ input[type="radio"] {
 }
 
 input[type="radio"] + label {
-    /* -webkit-appearance: none;
-    -moz-appearance: none; */
     padding: 2px;
     margin: 0;
     white-space: nowrap;
@@ -45,6 +43,8 @@ input[type="radio"]:checked + label + div > div {
 button, .btn, #switchinput + label {
     -webkit-appearance: none;
     padding: 2px;
+    margin: 0px;
+    overflow: hidden;
     white-space: nowrap;
     background-color: #ffffff;
     border: 1px solid #a8a8a8;
@@ -52,11 +52,6 @@ button, .btn, #switchinput + label {
     justify-content: center;
     align-items: center;
 }
-
-/* button:active {
-    background-color: #a8a8a8;
-    transition-duration: 250ms;
-} */
 
 .mathbtn {
     pointer-events:none;
