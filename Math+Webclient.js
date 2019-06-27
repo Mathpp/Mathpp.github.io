@@ -90,6 +90,36 @@ window.addEventListener('DOMContentLoaded', function() {
     } else {
         alert("Error unsupported platform");
     }
+    
+    // Try load from storage
+    loadTabs();
+    if(tab1 != null) {
+        var __Tab1 = document.querySelector("#__Tab1 ~ div");
+        __Tab1.innerHTML = tab1;
+    }
+    if(tab2 != null) {
+        var __Tab2 = document.querySelector("#__Tab2 ~ div");
+        __Tab2.innerHTML = tab2;
+    }
+    
+    // Setup invoke callbacks
+    var nodes = document.querySelectorAll("input[type=\"radio\"] + label + div > button");
+    for (var node of nodes) {
+        setinvokeHandler(node, node.getAttribute("formula"), node.getAttribute("keystroke"));
+    }
+
+    var str = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    for(var i=0; i<str.length; i++) {
+        var ch = str.charAt(i);
+        var button = document.createElement('button');
+        button.setAttribute('formula', ch);
+        var line = document.createElement("div");
+        button.appendChild(line);
+        all.appendChild(button);
+        line.classList.add("mathbtn");
+        line.innerHTML = ch;
+        setinvokeHandler(button, ch, null);
+    }
     output = document.getElementById('output');
     output.mq = [];
     flow.push(output);
@@ -143,16 +173,21 @@ loadState = function(inputs) {
     worker.postMessage({ type: "showsteps" });
 }
 
-var setinvokeHandler = function(button, formula, parameter) {
-    var keystroke = [];
-    for(var i = 0; i < parameter; ++i) {
-        keystroke.push("Left");
-    }
-    var keys = keystroke.join(" ");
+var setinvokeHandler = function(button, formula, stroke) {
     button.onclick = function() {
-        setTimeout(function() {;
-            inputMathField.write(formula);
-            inputMathField.keystroke(keys);
+        setTimeout(function() {
+            if(formula != null) {
+                inputMathField.write(formula);
+            }
+            if(stroke != null) {
+                if(stroke == "Enter") {
+                    var enteredMath = inputMathField.latex();
+                    inputs.push(enteredMath);
+                    invoke(enteredMath);
+                } else {
+                    inputMathField.keystroke(stroke);
+                }
+            }
         });
     }
 }
@@ -160,7 +195,12 @@ var setinvokeHandler = function(button, formula, parameter) {
 var appendMathButton = function (icon, formula, parameter, draggable) {
     var button = document.createElement(draggable ? 'div' : 'button');
     button.setAttribute('formula', formula);
-    button.setAttribute('parameter', parameter.toString());
+    var keystroke = [];
+    for(var i = 0; i < parameter; ++i) {
+        keystroke.push("Left");
+    }
+    var stroke = keystroke.join(" ");
+    button.setAttribute('keystroke', stroke);
     var line = document.createElement("div");
     button.appendChild(line);
     all.appendChild(button);
@@ -174,7 +214,7 @@ var appendMathButton = function (icon, formula, parameter, draggable) {
         onshow();
     }
     if(!draggable) {
-        setinvokeHandler(button, formula, parameter);
+        setinvokeHandler(button, formula, stroke);
     } else {
         button.draggable = true;
         button.classList.add("btn");
@@ -185,14 +225,22 @@ var ConvertMathButton = function(draggable) {
     var nodes = document.querySelectorAll(!draggable ? "input[type=\"radio\"] + label + div > div[class=btn]" : "input[type=\"radio\"] + label + div > button");
     for (var node of nodes) {
         var button = document.createElement(draggable ? 'div' : 'button');
-        button.setAttribute('formula', node.getAttribute('formula'));
-        button.setAttribute('parameter', node.getAttribute('parameter'));
-        button.appendChild(node.firstChild);
+        var formula = node.getAttribute('formula');
+        if(formula != null) {
+            button.setAttribute('formula', formula);
+        }
+        var keystroke = node.getAttribute('keystroke');
+        if(keystroke != null) {
+            button.setAttribute('keystroke', keystroke);
+        }
+        for(var child of node.children) {
+            button.appendChild(child);
+        }
         button.style.gridArea = node.style.gridArea;
         node.parentNode.insertBefore(button, node);
         node.parentNode.removeChild(node);
         if(!draggable) {
-            setinvokeHandler(button, node.getAttribute('formula'), Number.parseInt(node.getAttribute('parameter')));
+            setinvokeHandler(button, formula, keystroke);
         } else {
             button.draggable = true;
             button.classList.add("btn");
@@ -406,4 +454,7 @@ onbeforeunload = function(e) {
     try{
         localStorage.setItem("inputs", JSON.stringify(inputs));
     } catch(e) {}
+    tab1 = document.querySelector("#__Tab1 ~ div").innerHTML;
+    tab2 = document.querySelector("#__Tab2 ~ div").innerHTML;
+    saveTabs();
 }

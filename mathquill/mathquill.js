@@ -640,9 +640,6 @@ var Cursor = P(Point, function(_) {
   };
   _.insDirOf = function(dir, el) {
     prayDirection(dir);
-    if(el[dir] != 0 && el[dir].ctrlSeq === '\\parameter') {
-      return this.insAtDirEnd(-dir, el[dir].ends[-dir]);
-    }
     this.jQ.insDirOf(dir, el.jQ);
     this.withDirInsertAt(dir, el.parent, el[dir], el);
     this.parent.jQ.addClass('mq-hasCursor');
@@ -4238,10 +4235,10 @@ LatexCmds.left = P(MathCommand, function(_) {
 	if (ctrlSeq=="\\lVert") { open = '&#8741;'; ctrlSeq = ctrlSeq + ' '; }
         return latexMathParser.then(function (block) {
           return string('\\right').skip(optWhitespace)
-            .then(regex(/^(?:[\])|]|\\\}|\\rangle(?![a-zA-Z])|\\rfloor|\\rceil|\\rVert(?![a-zA-Z]))/)).map(function(end) {
+          .then(regex(/^(?:[\])|]|\\\}|\\rangle(?![a-zA-Z])|\\rfloor|\\rceil|\\rVert(?![a-zA-Z]))/)).map(function(end) {
               var close = (end.charAt(0) === '\\' ? end.slice(1) : end);
-	      if (end=="\\rangle") { close = '&rang;'; end = end + ' '; }
-	      if (end=="\\rfloor") { close = '&#8971;'; end = end + ' '; }
+        if (end=="\\rangle") { close = '&rang;'; end = end + ' '; }
+        if (end=="\\rfloor") { close = '&#8971;'; end = end + ' '; }
 	      if (end=="\\rceil") { close = '&#8969;'; end = end + ' '; }
 	      if (end=="\\rVert") { close = '&#8741;'; end = end + ' '; }
               var cmd = Bracket(0, open, close, ctrlSeq, end);
@@ -4322,93 +4319,132 @@ LatexCmds.formula = P(MathCommand, function(_, super_) {
     super_.init.call(this, '\\formula', '<span>&0</span>');
   };
 
-  _.latex = function() {
-    var blocks = [];
-    super_.eachChild.call(this, function(c){blocks.push(c.latex())});
-    i = 0;
-    return this.latextemplate.replace(/\\parameter\s*{[^}]*}/g, function(s) {
-      return blocks[i++];
-    });
-  };
   _.finalizeTree = function() {
-    // var args = arguments;
-    // var patch = function(c) {
-    //   if(typeof c.finalizeTree !== 'undefined') {
-    //     c.finalizeTree.apply(c, args);
-    //   }
-    //   if(c.ends[L] != 0) {
-    //     patch(c.ends[L]);
-    //   }
-    //   if(c[R] != 0) {
-    //     patch(c[R]);
-    //   }
-    // };
-    // patch(this.content.ends[L]);
-    if(typeof this.found === 'undefined') {
-      this.latextemplate = this.blocks[0].latex();
-      var patch = function(c, found) {
-        if(c.ctrlSeq === '\\parameter') {
-          if(c[L] == 0 && c[R] == 0) {
-            var p = c.parent.parent;
-            c.remove();
-            found.push(p.ends);
-            return;
-          } else {
-            found.push(c.ends);
-          }
-        } else if(c.ends[L] != 0) {
+    var self = this;
+    var patch = function(c, found) {
+      // Override seek to seek from formula
+      c.seek = function() {
+        self.seek.apply(self, arguments);
+      }
+      if(c.ctrlSeq === '\\parameter') {
+        c.owner = self;
+        c.i = found.length;
+        found.push(c);
+      } else {
+        if(c.ends[L] != 0) {
           patch(c.ends[L], found);
         }
-        if(c[R] != 0) {
-          patch(c[R], found);
-        }
-      };
-      var found = [];
-      patch(this.ends[L], found);
-      this.content = this.ends[L];
-      if(found.length > 0) {
-        (this.ends[L] = found[0][L]).parent = this;
-        (this.ends[R] = found[found.length - 1][R]).parent = this;
-        for (var i = 1; i < found.length; i++) {
-          found[i - 1][L][R] = found[i][R];
-          found[i][R][L] = found[i - 1][L];
-        }
-      } else {
-        this.ends[L] = this.ends[R] = 0;
-        this.moveTowards = function(dir, cursor) {
-          cursor.jQ.insDirOf(dir, this.jQ);
-          cursor[-dir] = this;
-          cursor[dir] = this[dir];
-        };
       }
-    }
-    super_.eachChild.call(this, function(c){
-      c.deleteOutOf = function(dir, cursor) {
-        cursor.unwrapGramp();
+      if(c[R] != 0) {
+        patch(c[R], found);
+      }
+    };
+    this.parameter = [];
+    patch(this.ends[L], this.parameter);
+    if(this.parameter.length != 0) {
+      this.fakeends = [];
+      this.fakeends[L] = this.parameter[0].ends[L];
+      this.fakeends[R] = this.parameter[this.parameter.length - 1].ends[R];
+    } else {
+      this.moveTowards = function(dir, cursor, updown) {
+        cursor.insDirOf(dir, self);
       };
-    });
+    }
     return this;
   }
 
-  _.reflow = function() {
-    var patch = function(c) {
-      if(typeof c.reflow !== 'undefined') {
-        c.reflow();
+  // Default move to directly to first parameter
+  _.moveTowards = function(dir, cursor, updown) {
+    var updownInto = updown && this[updown+'Into'];
+    cursor.insAtDirEnd(-dir, updownInto || this.fakeends[-dir]);
+  };
+
+  // modified to use parameter array
+  _.seek = function(pageX, cursor) {
+    function getBounds(node) {
+      var bounds = {}
+      bounds[L] = node.jQ.offset().left;
+      bounds[R] = bounds[L] + node.jQ.outerWidth();
+      return bounds;
+    }
+
+    var cmd = this;
+    var cmdBounds = getBounds(cmd);
+
+    if (pageX < cmdBounds[L]) return cursor.insLeftOf(cmd);
+    if (pageX > cmdBounds[R]) return cursor.insRightOf(cmd);
+
+    var leftLeftBound = cmdBounds[L];
+    for(var i = 0; i < this.parameter.length; i++) {
+      var block = this.parameter[i].ends[L];
+      var blockBounds = getBounds(block);
+      if (pageX < blockBounds[L]) {
+        // closer to this block's left bound, or the bound left of that?
+        if (pageX - leftLeftBound < blockBounds[L] - pageX) {
+          if (block[L]) cursor.insAtRightEnd(block[L]);
+          else cursor.insLeftOf(cmd);
+        }
+        else cursor.insAtLeftEnd(block);
+        break;
       }
-      if(c.ends[L] != 0) {
-        patch(c.ends[L]);
+      else if (pageX > blockBounds[R]) {
+        if (block[R]) leftLeftBound = blockBounds[R]; // continue to next block
+        else { // last (rightmost) block
+          // closer to this block's right bound, or the cmd's right bound?
+          if (cmdBounds[R] - pageX < pageX - blockBounds[R]) {
+            cursor.insRightOf(cmd);
+          }
+          else cursor.insAtRightEnd(block);
+        }
       }
-      if(c[R] != 0) {
-        patch(c[R]);
+      else {
+        block.seek(pageX, cursor);
+        break;
       }
-    };
-    patch(this.content);
+    }
+  };
+
+  _.deleteTowards = function(dir, cursor) {
+    cursor[dir] = this.remove()[dir];
+  };
+
+  _.latex = function() {
+    return this.ends[L].latex();
   };
 });
 
 LatexCmds.parameter = P(MathCommand, function(_, super_) {
   _.init = function() {
     super_.init.call(this, '\\parameter', '<span>&0</span>');
+    this.owner = null;
+    this.i = 0;
+  };
+
+  _.finalizeTree = function() {
+    var _ = this.ends[L];
+    var self = this;
+    _.moveOutOf = function(dir, cursor, updown) {
+      var i = self.i + dir;
+      if (i >= 0 && i < self.owner.parameter.length) cursor.insAtDirEnd(-dir, self.owner.parameter[i].ends[-dir]);
+      else cursor.insDirOf(dir, self.owner);
+    };
+  
+    _.selectOutOf = function(dir, cursor) {
+      cursor.insDirOf(dir, self.owner);
+    };
+
+    _.deleteOutOf = function(dir, cursor) {
+      var i = self.i + dir;
+      if (i >= 0 && i < self.owner.parameter.length) cursor.insAtDirEnd(-dir, self.owner.parameter[i].ends[-dir]);
+      else {
+        cursor.insDirOf(dir, self.owner);
+        cursor[-dir] = self.owner.remove()[-dir];
+      }
+    };
+  }
+
+  _.latex = function() {
+    return this.ends[L].latex();
   };
 });
 

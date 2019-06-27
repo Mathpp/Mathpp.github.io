@@ -1,4 +1,6 @@
 var config = [ 3, 6, '.', ',', ';' ];
+var tab1 = null;
+var tab2 = null;
 var items = ["Grouplength","GroupAfter", "GroupSeperator","DecimalSeperator", "ListSeperator"];
 function getSettings() {
     try {
@@ -20,6 +22,27 @@ function getSettings() {
         return config;
     }
 }
+function loadTabs() {
+    try {
+        tab1 = localStorage.getItem("tab1");
+        if(tab1.length == 0) tab1 = null;
+        tab2 = localStorage.getItem("tab2");
+        if(tab2.length == 0) tab2 = null;
+    } catch (e) {
+        tab1 = null;
+        tab2 = null;
+    }
+}
+
+function saveTabs() {
+    if (tab1 != null) {
+        localStorage.setItem("tab1", tab1);
+    }
+    if (tab2 != null) {
+        localStorage.setItem("tab2", tab2);
+    }
+}
+
 function loadSettings() {
     for (var i = 0; i < items.length; i++) {
         var key = items[i];
