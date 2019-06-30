@@ -4,7 +4,7 @@ var inputSpan = null;
 var output = null;
 var inputMathField = null;
 var toggle = null;
-var settings = null;
+var settings = getSettings();
 var flow = [];
 var lastnode = null;
 var all = null;
@@ -124,7 +124,6 @@ window.addEventListener('DOMContentLoaded', function() {
     output.mq = [];
     flow.push(output);
     toggle = document.getElementById('toggle');
-    settings = getSettings();
 }, false);
 
 var addinputs = function(input) {
@@ -177,6 +176,8 @@ loadState = function(inputs) {
             invoke(input);
         }
     });
+    // Restore Custom settings
+    configure(settings);
     worker.postMessage({ type: "showsteps" });
 }
 
@@ -456,7 +457,8 @@ var LoadDefault = function() {
                 addinputs(line);
                 invoke(line);
             });
-            // Load Custom Settings
+            // Restore Custom settings
+            configure(settings);
             worker.postMessage({ type: "showsteps" });
         });
     });

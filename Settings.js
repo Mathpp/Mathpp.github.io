@@ -22,6 +22,7 @@ function getSettings() {
         return config;
     }
 }
+
 function loadTabs() {
     try {
         tab1 = localStorage.getItem("tab1");
@@ -55,6 +56,7 @@ function loadSettings() {
         document.getElementById(key).value = val != null && val.length > 0 ? val : config[i];
     }
 }
+
 function saveSettings() {
     try {
         for (var key in items) {
