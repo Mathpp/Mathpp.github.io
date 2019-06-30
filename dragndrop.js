@@ -25,19 +25,18 @@ function dragable(section) {
     section.addEventListener('drop', function(e) {
         e.preventDefault();
         if(e.target.nodeName == "DIV") {
-            if(e.target.draggable && e.target.parentElement == dragEl.parentElement) {
-                var gridColumn = dragEl.style.gridColumn;
-                var gridRow = dragEl.style.gridRow;
-                dragEl.style.gridColumn = e.target.style.gridColumn;
-                dragEl.style.gridRow = e.target.style.gridRow;
-                e.target.style.gridColumn = gridColumn;
-                e.target.style.gridRow = gridRow;
-            } else if(!e.target.draggable) {
-                var next = dragEl.nextSibling;
-                var parent = dragEl.parentElement;
-                e.target.parentElement.insertBefore(dragEl, e.target.nextSibling);
-                parent.insertBefore(e.target, next);
-            }
+            //swap inline grid- row / column definitions
+            var gridColumn = dragEl.style.gridColumn;
+            var gridRow = dragEl.style.gridRow;
+            dragEl.style.gridColumn = e.target.style.gridColumn;
+            dragEl.style.gridRow = e.target.style.gridRow;
+            e.target.style.gridColumn = gridColumn;
+            e.target.style.gridRow = gridRow;
+            // swap html implicit positions
+            var next = dragEl.nextSibling;
+            var parent = dragEl.parentElement;
+            e.target.parentElement.insertBefore(dragEl, e.target.nextSibling);
+            parent.insertBefore(e.target, next);
         }
     });
 }
