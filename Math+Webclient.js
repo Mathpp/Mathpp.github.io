@@ -254,7 +254,7 @@ var ConvertMathButton = function(draggable) {
             button.classList.add("btn");
         }
     }
-    if(!dragable) {
+    if(!draggable) {
         tab1 = document.querySelector("#__Tab1 ~ div").innerHTML;
         tab2 = document.querySelector("#__Tab2 ~ div").innerHTML;
         saveTabs();
