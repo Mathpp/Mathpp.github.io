@@ -126,8 +126,8 @@ window.addEventListener('DOMContentLoaded', function() {
     toggle = document.getElementById('toggle');
 }, false);
 
-var addinputs = function(input) {
-    inputs.push(input);
+var addinputs = function() {
+    inputs.push.apply(inputs, arguments);
     try{
         localStorage.setItem("inputs", JSON.stringify(inputs));
     } catch(e) {}
@@ -453,8 +453,9 @@ var LoadDefault = function() {
     if(toggle !== null) toggle.checked = false;
     return fetch("Default.Math++").then(function(r){
         return r.text().then(function(text) {
-            text.split(/\r?\n/).forEach(function(line) {
-                addinputs(line);
+            var lines = text.split(/\r?\n/);
+            addinputs.apply(addinputs, lines);
+            lines.forEach(function(line) {
                 invoke(line);
             });
             // Restore Custom settings
