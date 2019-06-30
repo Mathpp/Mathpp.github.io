@@ -104,7 +104,7 @@ button, .btn, #switchinput + label {
 #mainView > nav + div {
     grid-column: 1;
     grid-row: 2;
-    overflow-x: scroll;
+    overflow-y: auto;
 }
 
 #mainView > nav + div + div {
