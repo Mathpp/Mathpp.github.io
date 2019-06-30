@@ -31,7 +31,7 @@ window.addEventListener('DOMContentLoaded', function() {
             handlers: {
                 enter: function() {
                     var enteredMath = inputMathField.latex();
-                    inputs.push(enteredMath);
+                    addinputs(enteredMath);
                     invoke(enteredMath);
                 }
             }
@@ -127,6 +127,13 @@ window.addEventListener('DOMContentLoaded', function() {
     settings = getSettings();
 }, false);
 
+var addinputs = function(input) {
+    inputs.push(input);
+    try{
+        localStorage.setItem("inputs", JSON.stringify(inputs));
+    } catch(e) {}
+}
+
 var worker = null;
 if(navigator.userAgent == "webkitapp") {
     worker = [];
@@ -182,7 +189,7 @@ var setinvokeHandler = function(button, formula, stroke) {
             if(stroke != null) {
                 if(stroke == "Enter") {
                     var enteredMath = inputMathField.latex();
-                    inputs.push(enteredMath);
+                    addinputs(enteredMath);
                     invoke(enteredMath);
                 } else {
                     inputMathField.keystroke(stroke);
@@ -246,6 +253,11 @@ var ConvertMathButton = function(draggable) {
             button.classList.add("btn");
         }
     }
+    if(!dragable) {
+        tab1 = document.querySelector("#__Tab1 ~ div").innerHTML;
+        tab2 = document.querySelector("#__Tab2 ~ div").innerHTML;
+        saveTabs();
+    }
 };
 
 var editstate = false;
@@ -285,7 +297,7 @@ worker.onmessage = function(e) {
             } else {
                 var ninputs = JSON.parse(linput);
                 loadState(ninputs);
-                inputs.push.apply(inputs, ninputs);
+                addinputs.apply(null, ninputs);
             }
             break;
         case "success":
@@ -415,7 +427,7 @@ var Import = function() {
     } else {
         var ninputs = JSON.parse(exim.value);
         loadState(ninputs);
-        inputs.push.apply(inputs, ninputs);
+        addinputs.apply(null, ninputs);
         exim.style.display = 'none';
     }
 };
@@ -429,7 +441,7 @@ var Export = function() {
 };
 
 var configure = function(config) {
-    inputs.push(config);
+    addinputs(config);
     worker.postMessage({ type: "configure", "settings": config });
 }
 
@@ -441,7 +453,7 @@ var LoadDefault = function() {
     return fetch("Default.Math++").then(function(r){
         return r.text().then(function(text) {
             text.split(/\r?\n/).forEach(function(line) {
-                inputs.push(line);
+                addinputs(line);
                 invoke(line);
             });
             // Load Custom Settings
@@ -449,12 +461,3 @@ var LoadDefault = function() {
         });
     });
 };
-
-onbeforeunload = function(e) {
-    try{
-        localStorage.setItem("inputs", JSON.stringify(inputs));
-    } catch(e) {}
-    tab1 = document.querySelector("#__Tab1 ~ div").innerHTML;
-    tab2 = document.querySelector("#__Tab2 ~ div").innerHTML;
-    saveTabs();
-}
