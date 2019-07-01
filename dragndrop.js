@@ -24,7 +24,7 @@ function dragable(section) {
 
     section.addEventListener('drop', function(e) {
         e.preventDefault();
-        if(e.target.nodeName == "DIV") {
+        if(e.target.matches("#keypad > input[type=\"radio\"] + label + div > div")) {
             //swap inline grid- row / column definitions
             var gridColumn = dragEl.style.gridColumn;
             var gridRow = dragEl.style.gridRow;
