@@ -599,6 +599,240 @@ var Cursor = P(Point, function(_) {
     this.blink = function(){ jQ.toggleClass('mq-blink'); };
 
     this.upDownCache = {};
+
+    var ctrlr = this.ctrlr = this.parent.controller;
+
+    var cursorhtml = '<span style="position: absolute; z-index: 1; left: -22px; top: 0px; width: 44px; height: 44px;"><svg width="22" height="26.509999999999998" viewBox="-11 0 22 26.509999999999998" style="margin-left: 11px;"><path d="M 0 0 L -7.776999999999999 7.776999999999999 A 11 11, 0, 1, 0, 7.776999999999999 7.776999999999999 Z" fill="blue"></path></svg></span>';
+    this.touchcursors = $('<span style="position: relative;"></span>');
+    this.touchcursors.append(this.touchcursor = $(cursorhtml));
+    this.touchcursor[0].style.display = "none";
+    this.touchcursors.append(this.touchanticursor = $(cursorhtml));
+    this.touchanticursor[0].style.display = "none";
+
+    var menu = $('<div class="mathquill-edit-menu"><ul class="menu-options"><li class="menu-option">Copy</li><li class="menu-option">Cut</li><li class="menu-option">Paste</li></ul></div>');
+
+    var toggleMenu = function(command) {
+        if(command === "show") {
+        var all = menu[0].querySelectorAll('li[class="menu-option"]');
+        if(self.ctrlr.editable) {
+          if(self.selection) {
+            all.item(0).style.display = "";
+            all.item(1).style.display = "";
+            all.item(2).style.display = "";
+          } else {
+            all.item(0).style.display = "none";
+            all.item(1).style.display = "none";
+            all.item(2).style.display = "";
+          }
+        } else {
+          all.item(0).style.display = "";
+          all.item(1).style.display = "none";
+          all.item(2).style.display = "none";
+        }
+        menu[0].style.display = "block";
+      } else {
+        menu[0].style.display = "none";
+      }
+    };
+
+    menu.bind("touchstart", function(e) {
+      e.stopPropagation();
+      toggleMenu("hide");
+      ctrlr.textarea.focus();
+      switch (e.target.innerHTML) {
+        case "Copy":
+          if(!document.execCommand("copy")) {
+            alert("copy failed :(");
+          }
+          break;
+        case "Cut":
+          if(!document.execCommand("cut")) {
+            alert("cut failed :(");
+          }
+          break;
+        case "Paste":
+          if(!document.execCommand("paste")) {
+            navigator.clipboard.readText()
+            .then(function(text) {
+              ctrlr.paste(text);
+            })
+            .catch(function(err) {
+              alert("paste failed :(");
+            });
+          }
+        default:
+          break;
+      }
+    });
+
+    menu.bind("touchmove touchend touchcancel", function(e) {
+      e.stopPropagation();
+      e.preventDefault();
+    });
+
+    var self = this;
+
+    var startcoord = { x: 0, y: 0};
+    var taptimer = null;
+    /**
+     * When a touch starts in the cursor handle, we track it so as to avoid
+     * handling any touch events ourself.
+     *
+     * @param {TouchEvent} e - the raw touch event from the browser
+     */
+    this.onCursorHandleTouchStart = function(e) {
+      // NOTE(charlie): The cursor handle is a child of this view, so whenever
+      // it receives a touch event, that event would also typically be bubbled
+      // up to our own handlers. However, we want the cursor to handle its own
+      // touch events, and for this view to only handle touch events that
+      // don't affect the cursor. As such, we `stopPropagation` on any touch
+      // events that are being handled by the cursor, so as to avoid handling
+      // them in our own touch handlers.
+      e.stopPropagation();
+
+      e.preventDefault();
+
+      var x = e.originalEvent.touches[0].pageX;
+      var y = e.originalEvent.touches[0].pageY;
+      if (taptimer != null && Math.abs(startcoord.x - x) <= 5 && Math.abs(startcoord.y - y) <= 5) {
+        clearTimeout(taptimer);
+        taptimer = null;
+        ctrlr.container.append(menu);
+        
+        var setPosition = function(origin) {
+          menu[0].style.left = origin.left + "px";
+          menu[0].style.top = origin.top + "px";
+          toggleMenu('show');
+        };
+
+        var origin = {
+          left: x,
+          top: y - 11
+        };
+        setPosition(origin);
+        
+        // ctrlr.textarea.focus();
+        // if(!document.execCommand("copy")) {
+        //   alert("copy failed :(");
+        // }
+      } else {
+        taptimer = setTimeout(function () {
+          taptimer = null;
+        }, 500);
+        startcoord.x = x;
+        startcoord.y = y;
+      }
+    };
+
+    this._updateCursorHandle = function(animate) {
+      setTimeout(function() {
+        if(self.jQ[0]) {
+          var bounds = self.touchcursors[0].getBoundingClientRect();
+          var sbounds = self.jQ[0].getBoundingClientRect();
+          self.touchcursor[0].style.transform = 'translate(' + (sbounds.left + 1 - bounds.left) +'px, ' + (sbounds.bottom - bounds.top) + 'px)';
+        }
+      }, 0);
+    };
+
+    /**
+     * When the user moves the cursor handle update the position of the cursor
+     * and the handle.
+     *
+     * @param {TouchEvent} e - the raw touch event from the browser
+     */
+    this.onCursorHandleTouchMove = function(e) {
+        e.stopPropagation();
+
+        const x = e.originalEvent.touches[0].pageX;
+        const y = e.originalEvent.touches[0].pageY;
+        
+        ctrlr.seek($(e.target), x, y);
+        //if (!self.anticursor) self.startSelection();
+        //ctrlr.seek(undefined, x, y).cursor.select();
+    };
+
+    /**
+     * When the user moves the cursor handle update the position of the cursor
+     * and the handle.
+     *
+     * @param {TouchEvent} e - the raw touch event from the browser
+     */
+    this.onCursorSelectionHandleTouchMove = function(e) {
+      e.stopPropagation();
+
+      const x = e.originalEvent.touches[0].pageX;
+      const y = e.originalEvent.touches[0].pageY;
+
+      var sbounds = self.selection.jQ[0].getBoundingClientRect();
+
+      if((self.selection.ends[L][L] === self[L] && sbounds.left + sbounds.width / 2 < x) || (self.selection.ends[R][R] === self[R] && sbounds.left + sbounds.width / 2 > x)) {
+        var l = self._l;
+        var r = self._r;
+        var p = self.parent;
+        self._l = self.anticursor[L];
+        self._r = self.anticursor[R];
+        self.parent = self.anticursor.parent;
+        self.anticursor[L] = l;
+        self.anticursor[R] = r;
+        self.anticursor.parent = p;
+      }
+
+      if (!self.anticursor) self.startSelection();
+      ctrlr.seek(undefined, x, y).cursor.select();
+  };
+
+    /**
+     * When the user releases the cursor handle, animate it back into place.
+     *
+     * @param {TouchEvent} e - the raw touch event from the browser
+     */
+    this.onCursorHandleTouchEnd = function(e) {
+        e.stopPropagation();
+
+        //self._updateCursorHandle(true);
+    };
+
+    /**
+     * If the gesture is cancelled mid-drag, simply hide it.
+     *
+     * @param {TouchEvent} e - the raw touch event from the browser
+     */
+    this.onCursorHandleTouchCancel = function(e) {
+        e.stopPropagation();
+
+        //self._updateCursorHandle(true);
+    };
+
+    this._l = this[L];
+    this._r = this[R];
+    Object.defineProperty(this, L, {
+      get: function() {
+        return this._l;
+      },
+      set: function(v) {
+        this._l = v;
+        this._updateCursorHandle();
+      }
+    });
+
+    Object.defineProperty(this, R, {
+      get: function() {
+        return this._r;
+      },
+      set: function(v) {
+        this._r = v;
+        this._updateCursorHandle();
+      }
+    });
+
+    this.touchcursor.bind("touchstart", this.onCursorHandleTouchStart);
+    this.touchcursor.bind("touchmove", this.onCursorHandleTouchMove);
+    this.touchcursor.bind("touchend", this.onCursorHandleTouchEnd);
+    this.touchcursor.bind("touchcancel", this.onCursorHandleTouchCancel);
+    this.touchanticursor.bind("touchstart", this.onCursorHandleTouchStart);
+    this.touchanticursor.bind("touchmove", this.onCursorSelectionHandleTouchMove);
+    this.touchanticursor.bind("touchend", this.onCursorHandleTouchEnd);
+    this.touchanticursor.bind("touchcancel", this.onCursorHandleTouchCancel);
   };
 
   _.show = function() {
@@ -616,10 +850,19 @@ var Cursor = P(Point, function(_) {
         this.jQ.appendTo(this.parent.jQ);
       this.parent.focus();
     }
+    if(!this.ctrlr.editable) {
+      this.ctrlr.textarea.prop('readonly', true);
+      this.touchcursor[0].style.display = "none";
+    } else {
+      this.ctrlr.container.prepend(this.touchcursors);
+      this.ctrlr.textarea.prop('readonly', false);
+      this.touchcursor[0].style.display = "";
+    }
     this.intervalId = setInterval(this.blink, 500);
     return this;
   };
   _.hide = function() {
+    this.touchcursor[0].style.display = "none";
     if ('intervalId' in this)
       clearInterval(this.intervalId);
     delete this.intervalId;
@@ -809,6 +1052,23 @@ var Cursor = P(Point, function(_) {
     this.hide().selection = lca.selectChildren(leftEnd, rightEnd);
     this.insDirOf(dir, this.selection.ends[dir]);
     this.selectionChanged();
+    this.ctrlr.container.prepend(this.touchcursors);
+    var bounds = this.touchcursors[0].getBoundingClientRect();
+    var sbounds = this.selection.jQ[0].getBoundingClientRect();
+    this.touchcursor[0].style.transform = 'translate(' + (sbounds.left - bounds.left) +'px, ' + (sbounds.bottom - bounds.top) + 'px)';
+    this.touchanticursor[0].style.transform = 'translate(' + (sbounds.right - bounds.left) +'px, ' + (sbounds.bottom - bounds.top) + 'px)';
+    this.touchcursor.off("touchmove");
+    this.touchcursor.bind("touchmove", this.onCursorSelectionHandleTouchMove);
+    this.touchanticursor[0].style.display = "";
+    this.touchcursor[0].style.display = "";
+    var self = this;
+    this.selection.clear = function() {
+      Selection.prototype.clear.apply(this, arguments);
+      self.touchcursor.off("touchmove");
+      self.touchcursor.bind("touchmove", self.onCursorHandleTouchMove);
+      self.touchanticursor[0].style.display = "none";
+      self.touchcursor[0].style.display = "none";
+    };
     return true;
   };
 
@@ -1091,7 +1351,7 @@ function getInterface(v) {
       var ctrlr = this.__controller.notify(), cursor = ctrlr.cursor;
       if (/^\\[a-z]+$/i.test(cmd) && !cursor.isTooDeep()) {
         cmd = cmd.slice(1);
-        var klass = LatexCmds[cmd];
+        var klass = LatexCmds[cmd] || Environments[latex];
         if (klass) {
           cmd = klass(cmd);
           if (cursor.selection) cmd.replaces(cursor.replaceSelection());
@@ -1800,6 +2060,59 @@ Controller.open(function(_) {
 
       rootjQ.mousemove(mousemove);
       $(e.target.ownerDocument).mousemove(docmousemove).mouseup(mouseup);
+      // listen on document not just body to not only hear about mousemove and
+      // mouseup on page outside field, but even outside page, except iframes: https://github.com/mathquill/mathquill/commit/8c50028afcffcace655d8ae2049f6e02482346c5#commitcomment-6175800
+    });
+
+    this.container.bind('touchstart.mathquill', function(e) {
+      var rootjQ = $(e.target).closest('.mq-root-block');
+      var root = Node.byId[rootjQ.attr(mqBlockId) || ultimateRootjQ.attr(mqBlockId)];
+      var ctrlr = root.controller, cursor = ctrlr.cursor, blink = cursor.blink;
+      var textareaSpan = ctrlr.textareaSpan, textarea = ctrlr.textarea;
+
+      e.preventDefault(); // doesn't work in IE\u22648, but it's a one-line fix:
+      e.target.unselectable = true; // http://jsbin.com/yagekiji/1
+
+      if (cursor.options.ignoreNextMousedown(e)) return;
+      else cursor.options.ignoreNextMousedown = noop;
+
+      var target;
+      function touchmove(e) { target = $(e.target); }
+      function doctouchmove(e) {
+        if (!cursor.anticursor) cursor.startSelection();
+        //console.log(e.originalEvent.touches);
+        ctrlr.seek(target, e.originalEvent.touches[0].pageX,  e.originalEvent.touches[0].pageY).cursor.select();
+        target = undefined;
+      }
+      // outside rootjQ, the MathQuill node corresponding to the target (if any)
+      // won't be inside this root, so don't mislead Controller::seek with it
+
+      function touchend(e) {
+        cursor.blink = blink;
+        if (!cursor.selection) {
+          if (ctrlr.editable) {
+            cursor.show();
+          }
+          else {
+            textareaSpan.detach();
+          }
+        }
+
+        // delete the mouse handlers now that we're not dragging anymore
+        //rootjQ.unbind('touchmove', touchmove);
+        $(e.target.ownerDocument).unbind('touchmove', doctouchmove).unbind('touchend touchcancel', touchend);
+      }
+
+      if (ctrlr.blurred) {
+        if (!ctrlr.editable) rootjQ.prepend(textareaSpan);
+        textarea.focus();
+      }
+
+      cursor.blink = noop;
+      ctrlr.seek($(e.target), e.originalEvent.touches[0].pageX,  e.originalEvent.touches[0].pageY).cursor.startSelection();
+
+      //rootjQ.bind('touchmove', touchmove);
+      $(e.target.ownerDocument).bind('touchmove', doctouchmove).bind('touchend touchcancel', touchend);
       // listen on document not just body to not only hear about mousemove and
       // mouseup on page outside field, but even outside page, except iframes: https://github.com/mathquill/mathquill/commit/8c50028afcffcace655d8ae2049f6e02482346c5#commitcomment-6175800
     });
@@ -3439,7 +3752,7 @@ CharCmds['\\'] = P(MathCommand, function(_, super_) {
 
     var latex = this.ends[L].latex();
     if (!latex) latex = ' ';
-    var cmd = LatexCmds[latex];
+    var cmd = LatexCmds[latex] || Environments[latex];
     if (cmd) {
       cmd = cmd(latex);
       if (this._replacedFragment) cmd.replaces(this._replacedFragment);
@@ -4317,96 +4630,153 @@ LatexCmds.MathQuillMathField = P(MathCommand, function(_, super_) {
 LatexCmds.formula = P(MathCommand, function(_, super_) {
   _.init = function() {
     super_.init.call(this, '\\formula', '<span>&0</span>');
+    this.parameter = [];
   };
 
-  _.finalizeTree = function() {
-    var self = this;
-    var patch = function(c, found) {
-      // Override seek to seek from formula
-      c.seek = function() {
-        self.seek.apply(self, arguments);
-      }
-      if(c.ctrlSeq === '\\parameter') {
-        c.owner = self;
-        c.i = found.length;
-        found.push(c);
-      } else {
-        if(c.ends[L] != 0) {
-          patch(c.ends[L], found);
+  // Optimize away redundant wrapper spans (chrome lags very hard without this)
+  _.adopt = function() {
+    var patchinner = function(self) {
+      var patch = function(c) {
+        if(!self.parameter.includes(c)) {
+          // Force seek to seek from formula
+          c.seek = function() {
+            self.seek.apply(self, arguments);
+          }
+          if(typeof c.ends !== "undefined" && c.ends[L] != 0) {
+            patch(c.ends[L]);
+          }
+        }
+        if(typeof c[R] != "undefined" && c[R] != 0) {
+          patch(c[R]);
+        }
+      };
+      patch(self.ends[L]);
+    }
+
+    var fixinner = function(self) {
+      for (var i = 0; i < self.parameter.length; i++) {
+        self.parameter[i].owner = self;
+        if(self.parameter[i].parent.ctrlSeq == "\\parameter" && self.parameter[i].parent.parent.ends[L] === self.parameter[i].parent && self.parameter[i].parent.parent.ends[R] === self.parameter[i].parent) {
+          var bself = self.parameter[i].parent.parent;
+          bself.owner = self.parameter[i].owner;
+          bself.i = self.parameter[i].i;
+          var old = self.parameter[bself.i].parent;
+          self.parameter[bself.i] = bself;
+          old.patch(bself);
+          // Removes redundant block in block
+          old.remove();
         }
       }
-      if(c[R] != 0) {
-        patch(c[R], found);
-      }
-    };
-    this.parameter = [];
-    patch(this.ends[L], this.parameter);
-    if(this.parameter.length != 0) {
-      this.fakeends = [];
-      this.fakeends[L] = this.parameter[0].ends[L];
-      this.fakeends[R] = this.parameter[this.parameter.length - 1].ends[R];
-    } else {
-      this.moveTowards = function(dir, cursor, updown) {
-        cursor.insDirOf(dir, self);
-      };
     }
-    return this;
+    if(this.ends[L].ends[L] === this.ends[R].ends[R]) {
+      var self = this.ends[L].ends[L];
+      self[L] = this[L];
+      self[R] = this[R];
+      if(self[L]) {
+        self[L][R] = self;
+      }
+      if(self[R]) {
+        self[R][L] = self;
+      }
+      self.parameter = this.parameter;
+      fixinner(self);
+      this.patch(self);
+      patchinner(self);
+      //this.dispose();
+      return self.adopt.apply(self, arguments);
+    } else {
+      fixinner(this);
+      this.patch(this);
+      patchinner(this);
+      return super_.adopt.apply(this, arguments);
+    }
   }
 
-  // Default move to directly to first parameter
-  _.moveTowards = function(dir, cursor, updown) {
-    var updownInto = updown && this[updown+'Into'];
-    cursor.insAtDirEnd(-dir, updownInto || this.fakeends[-dir]);
-  };
+  _.patch = function(self) {
+    if(self.parameter.length != 0) {
+      self.fakeends = [];
+      self.fakeends[L] = self.parameter[0];
+      self.fakeends[R] = self.parameter[self.parameter.length - 1];
+      // Default move to directly to first parameter
+      self.moveTowards = function(dir, cursor, updown) {
+        var updownInto = updown && this[updown+'Into'];
+        cursor.insAtDirEnd(-dir, this.fakeends[-dir])
+        //cursor.insDirOf(-dir, updownInto || this.fakeends[-dir]);
+      };
 
-  // modified to use parameter array
-  _.seek = function(pageX, cursor) {
-    function getBounds(node) {
-      var bounds = {}
-      bounds[L] = node.jQ.offset().left;
-      bounds[R] = bounds[L] + node.jQ.outerWidth();
-      return bounds;
-    }
-
-    var cmd = this;
-    var cmdBounds = getBounds(cmd);
-
-    if (pageX < cmdBounds[L]) return cursor.insLeftOf(cmd);
-    if (pageX > cmdBounds[R]) return cursor.insRightOf(cmd);
-
-    var leftLeftBound = cmdBounds[L];
-    for(var i = 0; i < this.parameter.length; i++) {
-      var block = this.parameter[i].ends[L];
-      var blockBounds = getBounds(block);
-      if (pageX < blockBounds[L]) {
-        // closer to this block's left bound, or the bound left of that?
-        if (pageX - leftLeftBound < blockBounds[L] - pageX) {
-          if (block[L]) cursor.insAtRightEnd(block[L]);
-          else cursor.insLeftOf(cmd);
+      // modified to use parameter array
+      self.seek = function(pageX, cursor) {
+        function getBounds(node) {
+          var bounds = {}
+          bounds[L] = node.jQ.offset().left;
+          bounds[R] = bounds[L] + node.jQ.outerWidth();
+          return bounds;
         }
-        else cursor.insAtLeftEnd(block);
-        break;
-      }
-      else if (pageX > blockBounds[R]) {
-        if (block[R]) leftLeftBound = blockBounds[R]; // continue to next block
-        else { // last (rightmost) block
-          // closer to this block's right bound, or the cmd's right bound?
-          if (cmdBounds[R] - pageX < pageX - blockBounds[R]) {
-            cursor.insRightOf(cmd);
+
+        var cmd = this;
+        var cmdBounds = getBounds(cmd);
+
+        if (pageX < cmdBounds[L]) return cursor.insLeftOf(cmd);
+        if (pageX > cmdBounds[R]) return cursor.insRightOf(cmd);
+
+        var leftLeftBound = cmdBounds[L];
+        for(var i = 0; i < this.parameter.length; i++) {
+          var block = this.parameter[i];
+          var blockBounds = getBounds(block);
+          if (pageX < blockBounds[L]) {
+            // closer to this block's left bound, or the bound left of that?
+            if (pageX - leftLeftBound < blockBounds[L] - pageX) {
+              if (i - 1 > 0) cursor.insAtRightEnd(this.parameter[i - 1]);
+              else cursor.insLeftOf(cmd);
+            }
+            else cursor.insAtLeftEnd(block);
+            break;
           }
-          else cursor.insAtRightEnd(block);
+          else if (pageX > blockBounds[R]) {
+            if (i + 1 < this.parameter.length) leftLeftBound = blockBounds[R]; // continue to next block
+            else { // last (rightmost) block
+              // closer to this block's right bound, or the cmd's right bound?
+              if (cmdBounds[R] - pageX < pageX - blockBounds[R]) {
+                cursor.insRightOf(cmd);
+              }
+              else cursor.insAtRightEnd(block);
+            }
+          }
+          else {
+            block.seek(pageX, cursor);
+            break;
+          }
         }
-      }
-      else {
-        block.seek(pageX, cursor);
-        break;
-      }
-    }
-  };
+      };
 
-  _.deleteTowards = function(dir, cursor) {
-    cursor[dir] = this.remove()[dir];
-  };
+      self.deleteTowards = function(dir, cursor) {
+        cursor[dir] = this.remove()[dir];
+      };
+    } else {
+      self.moveTowards = function(dir, cursor, updown) {
+        cursor.insDirOf(dir, self);
+      };
+      self.seek = function(pageX, cursor) {
+        // insert at whichever side the click was closer to
+        if (pageX - this.jQ.offset().left < this.jQ.outerWidth()/2)
+          cursor.insLeftOf(this);
+        else
+          cursor.insRightOf(this);
+      };
+      self.deleteTowards = function(dir, cursor) {
+        cursor[dir] = this.remove()[dir];
+      };
+    }
+  }
+
+  _.parser = function() {
+    var oldowner = LatexCmds.parameter.owner;
+    LatexCmds.parameter.owner = this;
+    return super_.parser.apply(this, arguments).map(function(obj) {
+      LatexCmds.parameter.owner = oldowner;
+      return obj;
+    });
+  }
 
   _.latex = function() {
     return this.ends[L].latex();
@@ -4414,31 +4784,38 @@ LatexCmds.formula = P(MathCommand, function(_, super_) {
 });
 
 LatexCmds.parameter = P(MathCommand, function(_, super_) {
+  var self = this;
   _.init = function() {
     super_.init.call(this, '\\parameter', '<span>&0</span>');
-    this.owner = null;
-    this.i = 0;
   };
 
-  _.finalizeTree = function() {
-    var _ = this.ends[L];
-    var self = this;
-    _.moveOutOf = function(dir, cursor, updown) {
-      var i = self.i + dir;
-      if (i >= 0 && i < self.owner.parameter.length) cursor.insAtDirEnd(-dir, self.owner.parameter[i].ends[-dir]);
-      else cursor.insDirOf(dir, self.owner);
+  _.adopt = function() {
+    var ret = super_.adopt.apply(this, arguments);
+    var block = this.ends[L];
+    block.owner = self.owner;
+    block.i = block.owner.parameter.length;
+    block.owner.parameter.push(block);
+    this.patch(block);
+    return ret;
+  }
+
+  _.patch = function(block) {
+    block.moveOutOf = function(dir, cursor, updown) {
+      var i = this.i + dir;
+      if (i >= 0 && i < this.owner.parameter.length) cursor.insAtDirEnd(-dir, this.owner.parameter[i]);
+      else cursor.insDirOf(dir, this.owner);
     };
   
-    _.selectOutOf = function(dir, cursor) {
-      cursor.insDirOf(dir, self.owner);
+    block.selectOutOf = function(dir, cursor) {
+      cursor.insDirOf(dir, this.owner);
     };
 
-    _.deleteOutOf = function(dir, cursor) {
-      var i = self.i + dir;
-      if (i >= 0 && i < self.owner.parameter.length) cursor.insAtDirEnd(-dir, self.owner.parameter[i].ends[-dir]);
+    block.deleteOutOf = function(dir, cursor) {
+      var i = this.i + dir;
+      if (i >= 0 && i < this.owner.parameter.length) cursor.insAtDirEnd(-dir, this.owner.parameter[i]);
       else {
-        cursor.insDirOf(dir, self.owner);
-        cursor[-dir] = self.owner.remove()[-dir];
+        cursor.insDirOf(dir, this.owner);
+        cursor[-dir] = this.owner.remove()[-dir];
       }
     };
   }
@@ -4479,7 +4856,453 @@ var Embed = LatexCmds.embed = P(Symbol, function(_, super_) {
     ;
   };
 });
-/************************************
+
+// LaTeX environments
+// Environments are delimited by an opening \begin{} and a closing
+// \end{}. Everything inside those tags will be formatted in a
+// special manner depending on the environment type.
+var Environments = {};
+
+LatexCmds.begin = P(MathCommand, function(_, super_) {
+_.parser = function() {
+  var string = Parser.string;
+  var regex = Parser.regex;
+  return string('{')
+    .then(regex(/^[a-z]+/i))
+    .skip(string('}'))
+    .then(function (env) {
+        return (Environments[env] ?
+          Environments[env]().parser() :
+          Parser.fail('unknown environment type: '+env)
+        ).skip(string('\\end{'+env+'}'));
+    })
+  ;
+};
+});
+
+var Environment = P(MathCommand, function(_, super_) {
+_.template = [['\\begin{', '}'], ['\\end{', '}']];
+_.wrappers = function () {
+  return [
+    _.template[0].join(this.environment),
+    _.template[1].join(this.environment)
+  ];
+};
+});
+
+var Matrix =
+Environments.matrix = P(Environment, function(_, super_) {
+
+var delimiters = {
+  column: '&',
+  row: '\\\\'
+};
+_.parentheses = {
+  left: null,
+  right: null
+};
+_.environment = 'matrix';
+
+_.reflow = function() {
+  var blockjQ = this.jQ.children('table');
+
+  var height = blockjQ.outerHeight()/+blockjQ.css('fontSize').slice(0,-2);
+
+  var parens = this.jQ.children('.mq-paren');
+  if (parens.length) {
+    scale(parens, min(1 + .2*(height - 1), 1.2), 1.05*height);
+  }
+};
+_.latex = function() {
+  var latex = '';
+  var row;
+
+  this.eachChild(function (cell) {
+    if (typeof row !== 'undefined') {
+      latex += (row !== cell.row) ?
+        delimiters.row :
+        delimiters.column;
+    }
+    row = cell.row;
+    latex += cell.latex();
+  });
+
+  return this.wrappers().join(latex);
+};
+_.html = function() {
+  var cells = [], trs = '', i=0, row;
+
+  function parenHtml(paren) {
+    return (paren) ?
+        '<span class="mq-scaled mq-paren">'
+      +   paren
+      + '</span>' : '';
+  }
+
+  // Build <tr><td>.. structure from cells
+  this.eachChild(function (cell) {
+    if (row !== cell.row) {
+      row = cell.row;
+      trs += '<tr>$tds</tr>';
+      cells[row] = [];
+    }
+    cells[row].push('<td>&'+(i++)+'</td>');
+  });
+
+  this.htmlTemplate =
+      '<span class="mq-matrix mq-non-leaf">'
+    +   parenHtml(this.parentheses.left)
+    +   '<table class="mq-non-leaf">'
+    +     trs.replace(/\$tds/g, function () {
+            return cells.shift().join('');
+          })
+    +   '</table>'
+    +   parenHtml(this.parentheses.right)
+    + '</span>'
+  ;
+
+  return super_.html.call(this);
+};
+// Create default 4-cell matrix
+_.createBlocks = function() {
+  this.blocks = [
+    MatrixCell(0, this),
+    MatrixCell(0, this),
+    MatrixCell(1, this),
+    MatrixCell(1, this)
+  ];
+};
+_.parser = function() {
+  var self = this;
+  var optWhitespace = Parser.optWhitespace;
+  var string = Parser.string;
+
+  return optWhitespace
+  .then(string(delimiters.column)
+    .or(string(delimiters.row))
+    .or(latexMathParser.block))
+  .many()
+  .skip(optWhitespace)
+  .then(function(items) {
+    var blocks = [];
+    var row = 0;
+    self.blocks = [];
+
+    function addCell() {
+      self.blocks.push(MatrixCell(row, self, blocks));
+      blocks = [];
+    }
+
+    for (var i=0; i<items.length; i+=1) {
+      if (items[i] instanceof MathBlock) {
+        blocks.push(items[i]);
+      } else {
+        addCell();
+        if (items[i] === delimiters.row) row+=1;
+      }
+    }
+    addCell();
+    self.autocorrect();
+    return Parser.succeed(self);
+  });
+};
+// Relink all the cells after parsing
+_.finalizeTree = function() {
+  var table = this.jQ.find('table');
+  table.toggleClass('mq-rows-1', table.find('tr').length === 1);
+  this.relink();
+};
+// Set up directional pointers between cells
+_.relink = function() {
+  var blocks = this.blocks;
+  var rows = [];
+  var row, column, cell;
+
+  // Use a for loop rather than eachChild
+  // as we're still making sure children()
+  // is set up properly
+  for (var i=0; i<blocks.length; i+=1) {
+    cell = blocks[i];
+    if (row !== cell.row) {
+      row = cell.row;
+      rows[row] = [];
+      column = 0;
+    }
+    rows[row][column] = cell;
+
+    // Set up horizontal linkage
+    cell[R] = blocks[i+1];
+    cell[L] = blocks[i-1];
+
+    // Set up vertical linkage
+    if (rows[row-1] && rows[row-1][column]) {
+      cell.upOutOf = rows[row-1][column];
+      rows[row-1][column].downOutOf = cell;
+    }
+
+    column+=1;
+  }
+
+  // set start and end blocks of matrix
+  this.ends[L] = blocks[0];
+  this.ends[R] = blocks[blocks.length-1];
+};
+// Ensure consistent row lengths
+_.autocorrect = function(rows) {
+  var lengths = [], rows = [];
+  var blocks = this.blocks;
+  var maxLength, shortfall, position, row, i;
+
+  for (i=0; i<blocks.length; i+=1) {
+    row = blocks[i].row;
+    rows[row] = rows[row] || [];
+    rows[row].push(blocks[i]);
+    lengths[row] = rows[row].length;
+  }
+
+  maxLength = Math.max.apply(null, lengths);
+  if (maxLength !== Math.min.apply(null, lengths)) {
+    // Pad shorter rows to correct length
+    for (i=0; i<rows.length; i+=1) {
+      shortfall = maxLength - rows[i].length;
+      while (shortfall) {
+        position = maxLength*i + rows[i].length;
+        blocks.splice(position, 0, MatrixCell(i, this));
+        shortfall-=1;
+      }
+    }
+    this.relink();
+  }
+};
+// Deleting a cell will also delete the current row and
+// column if they are empty, and relink the matrix.
+_.deleteCell = function(currentCell) {
+  var rows = [], columns = [], myRow = [], myColumn = [];
+  var blocks = this.blocks, row, column;
+
+  // Create arrays for cells in the current row / column
+  this.eachChild(function (cell) {
+    if (row !== cell.row) {
+      row = cell.row;
+      rows[row] = [];
+      column = 0;
+    }
+    columns[column] = columns[column] || [];
+    columns[column].push(cell);
+    rows[row].push(cell);
+
+    if (cell === currentCell) {
+      myRow = rows[row];
+      myColumn = columns[column];
+    }
+
+    column+=1;
+  });
+
+  function isEmpty(cells) {
+    var empties = [];
+    for (var i=0; i<cells.length; i+=1) {
+      if (cells[i].isEmpty()) empties.push(cells[i]);
+    }
+    return empties.length === cells.length;
+  }
+
+  function remove(cells) {
+    for (var i=0; i<cells.length; i+=1) {
+      if (blocks.indexOf(cells[i]) > -1) {
+        cells[i].remove();
+        blocks.splice(blocks.indexOf(cells[i]), 1);
+      }
+    }
+  }
+
+  if (isEmpty(myRow) && myColumn.length > 1) {
+    row = rows.indexOf(myRow);
+    // Decrease all following row numbers
+    this.eachChild(function (cell) {
+      if (cell.row > row) cell.row-=1;
+    });
+    // Dispose of cells and remove <tr>
+    remove(myRow);
+    this.jQ.find('tr').eq(row).remove();
+  }
+  if (isEmpty(myColumn) && myRow.length > 1) {
+    remove(myColumn);
+  }
+  this.finalizeTree();
+};
+_.addRow = function(afterCell) {
+  var previous = [], newCells = [], next = [];
+  var newRow = $('<tr></tr>'), row = afterCell.row;
+  var columns = 0, block, column;
+
+  this.eachChild(function (cell) {
+    // Cache previous rows
+    if (cell.row <= row) {
+      previous.push(cell);
+    }
+    // Work out how many columns
+    if (cell.row === row) {
+      if (cell === afterCell) column = columns;
+      columns+=1;
+    }
+    // Cache cells after new row
+    if (cell.row > row) {
+      cell.row+=1;
+      next.push(cell);
+    }
+  });
+
+  // Add new cells, one for each column
+  for (var i=0; i<columns; i+=1) {
+    block = MatrixCell(row+1);
+    block.parent = this;
+    newCells.push(block);
+
+    // Create cell <td>s and add to new row
+    block.jQ = $('<td class="mq-empty">')
+      .attr(mqBlockId, block.id)
+      .appendTo(newRow);
+  }
+
+  // Insert the new row
+  this.jQ.find('tr').eq(row).after(newRow);
+  this.blocks = previous.concat(newCells, next);
+  return newCells[column];
+};
+_.addColumn = function(afterCell) {
+  var rows = [], newCells = [];
+  var column, block;
+
+  // Build rows array and find new column index
+  this.eachChild(function (cell) {
+    rows[cell.row] = rows[cell.row] || [];
+    rows[cell.row].push(cell);
+    if (cell === afterCell) column = rows[cell.row].length;
+  });
+
+  // Add new cells, one for each row
+  for (var i=0; i<rows.length; i+=1) {
+    block = MatrixCell(i);
+    block.parent = this;
+    newCells.push(block);
+    rows[i].splice(column, 0, block);
+
+    block.jQ = $('<td class="mq-empty">')
+      .attr(mqBlockId, block.id);
+  }
+
+  // Add cell <td> elements in correct positions
+  this.jQ.find('tr').each(function (i) {
+    $(this).find('td').eq(column-1).after(rows[i][column].jQ);
+  });
+
+  // Flatten the rows array-of-arrays
+  this.blocks = [].concat.apply([], rows);
+  return newCells[afterCell.row];
+};
+_.insert = function(method, afterCell) {
+  var cellToFocus = this[method](afterCell);
+  this.cursor = this.cursor || this.parent.cursor;
+  this.finalizeTree();
+  this.bubble('reflow').cursor.insAtRightEnd(cellToFocus);
+};
+_.backspace = function(cell, dir, cursor, finalDeleteCallback) {
+  var dirwards = cell[dir];
+  if (cell.isEmpty()) {
+    this.deleteCell(cell);
+    while (dirwards &&
+      dirwards[dir] &&
+      this.blocks.indexOf(dirwards) === -1) {
+        dirwards = dirwards[dir];
+    }
+    if (dirwards) {
+      cursor.insAtDirEnd(-dir, dirwards);
+    }
+    if (this.blocks.length === 1 && this.blocks[0].isEmpty()) {
+      finalDeleteCallback();
+      this.finalizeTree();
+    }
+    this.bubble('edited');
+  }
+};
+});
+
+Environments.pmatrix = P(Matrix, function(_, super_) {
+_.environment = 'pmatrix';
+_.parentheses = {
+  left: '(',
+  right: ')'
+};
+});
+
+Environments.bmatrix = P(Matrix, function(_, super_) {
+_.environment = 'bmatrix';
+_.parentheses = {
+  left: '[',
+  right: ']'
+};
+});
+
+Environments.Bmatrix = P(Matrix, function(_, super_) {
+_.environment = 'Bmatrix';
+_.parentheses = {
+  left: '{',
+  right: '}'
+};
+});
+
+Environments.vmatrix = P(Matrix, function(_, super_) {
+_.environment = 'vmatrix';
+_.parentheses = {
+  left: '|',
+  right: '|'
+};
+});
+
+Environments.Vmatrix = P(Matrix, function(_, super_) {
+_.environment = 'Vmatrix';
+_.parentheses = {
+  left: '&#8214;',
+  right: '&#8214;'
+};
+});
+
+// Replacement for mathblocks inside matrix cells
+// Adds matrix-specific keyboard commands
+var MatrixCell = P(MathBlock, function(_, super_) {
+_.init = function(row, parent, replaces) {
+  super_.init.call(this);
+  this.row = row;
+  if (parent) {
+    this.adopt(parent, parent.ends[R], 0);
+  }
+  if (replaces) {
+    for (var i=0; i<replaces.length; i++) {
+      replaces[i].children().adopt(this, this.ends[R], 0);
+    }
+  }
+};
+_.keystroke = function(key, e, ctrlr) {
+  switch (key) {
+  case 'Shift-Spacebar':
+    e.preventDefault();
+    return this.parent.insert('addColumn', this);
+    break;
+  case 'Shift-Enter':
+  return this.parent.insert('addRow', this);
+    break;
+  }
+  return super_.keystroke.apply(this, arguments);
+};
+_.deleteOutOf = function(dir, cursor) {
+  var self = this, args = arguments;
+  this.parent.backspace(this, dir, cursor, function () {
+    // called when last cell gets deleted
+    return super_.deleteOutOf.apply(self, args);
+  });
+}
+});/************************************
  * Symbols for Advanced Mathematics
  ***********************************/
 

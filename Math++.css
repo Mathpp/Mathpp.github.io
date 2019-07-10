@@ -172,7 +172,6 @@ a:hover {
 .__Subcalculation_header {
   display: flex;
   align-items: center;
-  overflow-x: auto;
 }
 
 .content {

@@ -56,6 +56,12 @@ button, .btn, #keypad > label {
     grid-template-columns: 1fr auto auto auto;
 }
 
+#keypad > label {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+}
+
 #switchinput {
     opacity: 0;
     grid-column: 1 / span 1;

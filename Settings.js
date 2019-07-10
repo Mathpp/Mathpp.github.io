@@ -1,4 +1,5 @@
 var config = [ 3, 6, '.', ',', ';' ];
+var econfig = [ 3, 6, '\'', '.', ',' ];
 var tab1 = null;
 var tab2 = null;
 var items = ["Grouplength","GroupAfter", "GroupSeperator","DecimalSeperator", "ListSeperator"];
@@ -14,7 +15,7 @@ function getSettings() {
                     settings.push(val);
                 }
             } else {
-                settings.push(config[i]);
+                settings.push(econfig[i]);
             }
         }
         return settings;
@@ -53,7 +54,7 @@ function loadSettings() {
         } catch (e) {
             val = null;
         }
-        document.getElementById(key).value = val != null && val.length > 0 ? val : config[i];
+        document.getElementById(key).value = val != null && val.length > 0 ? val : econfig[i];
     }
 }
 

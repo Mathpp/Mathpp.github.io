@@ -38,53 +38,36 @@ window.addEventListener('DOMContentLoaded', function() {
         });
         var switchinput = document.getElementById("switchinput");
         var area = inputMathField.__controller.textarea;
-        var ctrlr = inputMathField.__controller;
-        var root = ctrlr.root, cursor = ctrlr.cursor;
-        var focus = function(e) {
-            ctrlr.blurred = false;
-            ctrlr.container.addClass('mq-focused');
-            if (!cursor.parent)
-                cursor.insAtRightEnd(root);
-            if (cursor.selection) {
-                cursor.selection.jQ.removeClass('mq-blur');
-                ctrlr.selectionChanged(); //re-select textarea contents after tabbing away and back
-            }
-            else
-                cursor.show();
-        };
         var keypad = document.getElementById("keypad");
         switchinput.addEventListener("focus", function(e) {
             e.preventDefault();
             inputMathField.focus();
         }, true);
-        switchinput.onchange = function(e) {
+        switchinput.addEventListener("change", function(e) {
             e.preventDefault();
             if(e.target.checked) {
-                inputMathField.__controller.textarea = $(keypad);
+                area.prop('readonly', true);
                 area.off("blur");
-                area[0].style.display = 'none';
-                focus();
             } else {
-                inputMathField.__controller.textarea = area;
+                area.prop('readonly', false);
                 inputMathField.__controller.focusBlurEvents();
-                area[0].style.display = '';
-                inputMathField.focus();
             }
-        }
+        });
         all = document.getElementById("all");
         all.onshow = [];
-        radius = keypad.querySelectorAll('input[name="tab"]');
+        radius = keypad.querySelectorAll('input[name="tab"],#switchinput');
         radius.forEach(function(el) {
-            el.onchange = function(e) {
+            el.addEventListener("change", function(e) {
+                inputMathField.focus();
                 if(el.checked) {
-                    if(typeof el.nextElementSibling !== "undefined" && typeof el.nextElementSibling.nextElementSibling !== "undefined" &&  typeof el.nextElementSibling.nextElementSibling.onshow !== "undefined") {
+                    if(typeof el.nextElementSibling !== "undefined" && typeof el.nextElementSibling.nextElementSibling !== "undefined" &&  typeof el.nextElementSibling.nextElementSibling.onshow !== "undefined" && el.nextElementSibling.nextElementSibling.onshow != null) {
                         el.nextElementSibling.nextElementSibling.onshow.forEach(function(handler) {
                             setTimeout(handler);
                         });
                         el.nextElementSibling.nextElementSibling.onshow = [];
                     }
                 }
-            };
+            });
         });
 
     } else {
@@ -183,6 +166,7 @@ loadState = function(inputs) {
 
 var setinvokeHandler = function(button, formula, stroke) {
     button.onclick = function() {
+        inputMathField.focus();
         setTimeout(function() {
             if(formula != null) {
                 inputMathField.write(formula);
