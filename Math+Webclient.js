@@ -253,7 +253,10 @@ var printReturnValue = function() {
         var line = document.createElement("span");
         flow[flow.length - 1].appendChild(line);
         var onshow = function() {
-            var mathfield = MQ.StaticMath(line, { mouseEvents:true });
+            var mathfield = MQ.StaticMath(line, { mouseEvents:true, substituteTextarea: function() {
+                return $('<textarea autocapitalize=off autocomplete=off autocorrect=off ' +
+                           'spellcheck=false x-palm-disable-ste-all=true readonly/>')[0];
+            }});
             output.mq.push(mathfield)
             mathfield.latex(onshow.lastReturnValue);
         };
@@ -325,7 +328,10 @@ worker.onmessage = function(e) {
                     var line = document.createElement("span");
                     header.appendChild(line);
                     var onshow = function() {
-                        var mathfield = MQ.StaticMath(line, { mouseEvents:true });
+                        var mathfield = MQ.StaticMath(line, { mouseEvents:true, substituteTextarea: function() {
+                            return $('<textarea autocapitalize=off autocomplete=off autocorrect=off ' +
+                                       'spellcheck=false x-palm-disable-ste-all=true readonly/>')[0];
+                        }});
                         output.mq.push(mathfield)
                         mathfield.latex(text);
                     };
@@ -360,7 +366,10 @@ worker.onmessage = function(e) {
                 var line = document.createElement("span");
                 flow[flow.length - 1].appendChild(line);
                 var onshow = function() {
-                    var mathfield = MQ.StaticMath(line, { mouseEvents:true });
+                    var mathfield = MQ.StaticMath(line, { mouseEvents:true, substituteTextarea: function() {
+                        return $('<textarea autocapitalize=off autocomplete=off autocorrect=off ' +
+                                   'spellcheck=false x-palm-disable-ste-all=true readonly/>')[0];
+                    }});
                     output.mq.push(mathfield)
                     mathfield.latex(text);
                 };
