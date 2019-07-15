@@ -1014,8 +1014,7 @@ var Cursor = P(Point, function(_) {
         re[R] = self.selection.ends[R][R];
         le[L] = self.selection.ends[L][L];
         le[R] = self.selection.ends[L];
-        self.parent = self[dir].parent;
-        self.anticursor.parent = self[-dir].parent;
+        self.anticursor.parent = self.parent;
         var anticursor = self.anticursor;
         var ancestors = anticursor.ancestors = {}; // a map from each ancestor of
         // the anticursor, to its child that is also an ancestor; in other words,
@@ -1118,7 +1117,7 @@ var Cursor = P(Point, function(_) {
           this.cursor.menu.css("bottom", windowHeight - y);
           this.cursor.menu.css("right", "auto");
           this.cursor.menu.css("top", "auto");
-        } else if(ey > windowHeight / 2 && x > windowWidth / 2) {
+        } else if(y > windowHeight / 2 && x > windowWidth / 2) {
           this.cursor.menu.css("right", windowWidth - x);
           this.cursor.menu.css("bottom", windowHeight - y);
           this.cursor.menu.css("left", "auto");
