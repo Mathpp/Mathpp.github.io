@@ -17,7 +17,7 @@ if ('serviceWorker' in navigator) {
                 }
             });
             Update = function() {
-                sw.postMessage("update");
+                sw.controller.postMessage("update");
             };
         }
     });
