@@ -609,36 +609,19 @@ var Cursor = P(Point, function(_) {
     this.touchcursors.append(this.touchanticursor = $(cursorhtml));
     this.touchanticursor[0].style.display = "none";
 
-    var menu = $('<div class="mathquill-edit-menu"><ul class="menu-options"><li class="menu-option">Copy</li><li class="menu-option">Cut</li><li class="menu-option">Paste</li></ul></div>');
+    var menu = this.menu = $('<div class="mathquill-edit-menu"><ul class="menu-options"><li class="menu-option">Copy</li><li class="menu-option">Cut</li><li class="menu-option">Paste</li></ul></div>');
 
-    var toggleMenu = function(command) {
-        if(command === "show") {
-        var all = menu[0].querySelectorAll('li[class="menu-option"]');
-        if(self.ctrlr.editable) {
-          if(self.selection) {
-            all.item(0).style.display = "";
-            all.item(1).style.display = "";
-            all.item(2).style.display = "";
-          } else {
-            all.item(0).style.display = "none";
-            all.item(1).style.display = "none";
-            all.item(2).style.display = "";
-          }
-        } else {
-          all.item(0).style.display = "";
-          all.item(1).style.display = "none";
-          all.item(2).style.display = "none";
-        }
-        menu[0].style.display = "block";
-      } else {
-        menu[0].style.display = "none";
-      }
-    };
+    var oldtouchcursors = this.touchcursors;
+    this.touchcursors = $('<span></span>');
+    this.touchcursors.append(oldtouchcursors);
+    this.touchcursors.append(menu);
+
+    var self = this;
 
     menu.bind("touchstart", function(e) {
       e.stopPropagation();
-      toggleMenu("hide");
-      ctrlr.textarea.focus();
+      self.toggleMenu("hide");
+      self.ctrlr.textarea.focus();
       switch (e.target.innerHTML) {
         case "Copy":
           if(!document.execCommand("copy")) {
@@ -652,13 +635,17 @@ var Cursor = P(Point, function(_) {
           break;
         case "Paste":
           if(!document.execCommand("paste")) {
+            var fail = function(err) {
+              alert("paste failed :(");
+            };
+            if(!navigator.clipboard || typeof navigator.clipboard.readText !== 'function') {
+              return fail();
+            }
             navigator.clipboard.readText()
             .then(function(text) {
               ctrlr.paste(text);
             })
-            .catch(function(err) {
-              alert("paste failed :(");
-            });
+            .catch(fail);
           }
         default:
           break;
@@ -672,167 +659,30 @@ var Cursor = P(Point, function(_) {
 
     var self = this;
 
-    var startcoord = { x: 0, y: 0};
-    var taptimer = null;
-    /**
-     * When a touch starts in the cursor handle, we track it so as to avoid
-     * handling any touch events ourself.
-     *
-     * @param {TouchEvent} e - the raw touch event from the browser
-     */
-    this.onCursorHandleTouchStart = function(e) {
-      // NOTE(charlie): The cursor handle is a child of this view, so whenever
-      // it receives a touch event, that event would also typically be bubbled
-      // up to our own handlers. However, we want the cursor to handle its own
-      // touch events, and for this view to only handle touch events that
-      // don't affect the cursor. As such, we `stopPropagation` on any touch
-      // events that are being handled by the cursor, so as to avoid handling
-      // them in our own touch handlers.
-      e.stopPropagation();
+    this.touchcursor.cursor = this;
+    this.touchanticursor.cursor = this;
+    this.touchcursor.other = this.touchanticursor;
+    this.touchanticursor.other = this.touchcursor;
 
-      e.preventDefault();
-
-      var x = e.originalEvent.touches[0].pageX;
-      var y = e.originalEvent.touches[0].pageY;
-      if (taptimer != null && Math.abs(startcoord.x - x) <= 5 && Math.abs(startcoord.y - y) <= 5) {
-        clearTimeout(taptimer);
-        taptimer = null;
-        ctrlr.container.append(menu);
-        
-        var setPosition = function(origin) {
-          menu[0].style.left = origin.left + "px";
-          menu[0].style.top = origin.top + "px";
-          toggleMenu('show');
-        };
-
-        var origin = {
-          left: x,
-          top: y - 11
-        };
-        setPosition(origin);
-        
-        // ctrlr.textarea.focus();
-        // if(!document.execCommand("copy")) {
-        //   alert("copy failed :(");
-        // }
-      } else {
-        taptimer = setTimeout(function () {
-          taptimer = null;
-        }, 500);
-        startcoord.x = x;
-        startcoord.y = y;
-      }
-    };
-
-    this._updateCursorHandle = function(animate) {
-      setTimeout(function() {
-        if(self.jQ[0]) {
-          var bounds = self.touchcursors[0].getBoundingClientRect();
-          var sbounds = self.jQ[0].getBoundingClientRect();
-          self.touchcursor[0].style.transform = 'translate(' + (sbounds.left + 1 - bounds.left) +'px, ' + (sbounds.bottom - bounds.top) + 'px)';
-        }
-      }, 0);
-    };
-
-    /**
-     * When the user moves the cursor handle update the position of the cursor
-     * and the handle.
-     *
-     * @param {TouchEvent} e - the raw touch event from the browser
-     */
-    this.onCursorHandleTouchMove = function(e) {
-        e.stopPropagation();
-
-        const x = e.originalEvent.touches[0].pageX;
-        const y = e.originalEvent.touches[0].pageY;
-        
-        ctrlr.seek($(e.target), x, y);
-        //if (!self.anticursor) self.startSelection();
-        //ctrlr.seek(undefined, x, y).cursor.select();
-    };
-
-    /**
-     * When the user moves the cursor handle update the position of the cursor
-     * and the handle.
-     *
-     * @param {TouchEvent} e - the raw touch event from the browser
-     */
-    this.onCursorSelectionHandleTouchMove = function(e) {
-      e.stopPropagation();
-
-      const x = e.originalEvent.touches[0].pageX;
-      const y = e.originalEvent.touches[0].pageY;
-
-      var sbounds = self.selection.jQ[0].getBoundingClientRect();
-
-      if((self.selection.ends[L][L] === self[L] && sbounds.left + sbounds.width / 2 < x) || (self.selection.ends[R][R] === self[R] && sbounds.left + sbounds.width / 2 > x)) {
-        var l = self._l;
-        var r = self._r;
-        var p = self.parent;
-        self._l = self.anticursor[L];
-        self._r = self.anticursor[R];
-        self.parent = self.anticursor.parent;
-        self.anticursor[L] = l;
-        self.anticursor[R] = r;
-        self.anticursor.parent = p;
-      }
-
-      if (!self.anticursor) self.startSelection();
-      ctrlr.seek(undefined, x, y).cursor.select();
-  };
-
-    /**
-     * When the user releases the cursor handle, animate it back into place.
-     *
-     * @param {TouchEvent} e - the raw touch event from the browser
-     */
-    this.onCursorHandleTouchEnd = function(e) {
-        e.stopPropagation();
-
-        //self._updateCursorHandle(true);
-    };
-
-    /**
-     * If the gesture is cancelled mid-drag, simply hide it.
-     *
-     * @param {TouchEvent} e - the raw touch event from the browser
-     */
-    this.onCursorHandleTouchCancel = function(e) {
-        e.stopPropagation();
-
-        //self._updateCursorHandle(true);
-    };
-
-    this._l = this[L];
-    this._r = this[R];
-    Object.defineProperty(this, L, {
-      get: function() {
-        return this._l;
-      },
-      set: function(v) {
-        this._l = v;
-        this._updateCursorHandle();
-      }
+    this.touchcursor.bind("touchstart", function() {
+      self.onCursorHandleTouchStart.apply(self.touchcursor, arguments);
+    });
+    this.touchcursor.bind("touchmove", function() {
+      self.onCursorHandleTouchMove.apply(self.touchcursor, arguments);
+    });
+    this.touchcursor.bind("touchcancel touchend", function() {
+      self.onCursorHandleTouchEnd.apply(self.touchcursor, arguments);
     });
 
-    Object.defineProperty(this, R, {
-      get: function() {
-        return this._r;
-      },
-      set: function(v) {
-        this._r = v;
-        this._updateCursorHandle();
-      }
+    this.touchanticursor.bind("touchstart", function() {
+      self.onCursorHandleTouchStart.apply(self.touchanticursor, arguments);
     });
-
-    this.touchcursor.bind("touchstart", this.onCursorHandleTouchStart);
-    this.touchcursor.bind("touchmove", this.onCursorHandleTouchMove);
-    this.touchcursor.bind("touchend", this.onCursorHandleTouchEnd);
-    this.touchcursor.bind("touchcancel", this.onCursorHandleTouchCancel);
-    this.touchanticursor.bind("touchstart", this.onCursorHandleTouchStart);
-    this.touchanticursor.bind("touchmove", this.onCursorSelectionHandleTouchMove);
-    this.touchanticursor.bind("touchend", this.onCursorHandleTouchEnd);
-    this.touchanticursor.bind("touchcancel", this.onCursorHandleTouchCancel);
+    this.touchanticursor.bind("touchmove", function() {
+      self.onCursorHandleTouchMove.apply(self.touchanticursor, arguments);
+    });
+    this.touchanticursor.bind("touchcancel touchend", function() {
+      self.onCursorHandleTouchEnd.apply(self.touchanticursor, arguments);
+    });
   };
 
   _.show = function() {
@@ -850,19 +700,18 @@ var Cursor = P(Point, function(_) {
         this.jQ.appendTo(this.parent.jQ);
       this.parent.focus();
     }
-    if(!this.ctrlr.editable) {
-      this.ctrlr.textarea.prop('readonly', true);
+    if(!this.touchcursor.dragging && !this.touchanticursor.dragging) {
       this.touchcursor[0].style.display = "none";
-    } else {
-      this.ctrlr.container.prepend(this.touchcursors);
-      this.ctrlr.textarea.prop('readonly', false);
-      this.touchcursor[0].style.display = "";
     }
+    this.toggleMenu("hide");
     this.intervalId = setInterval(this.blink, 500);
     return this;
   };
   _.hide = function() {
-    this.touchcursor[0].style.display = "none";
+    if(!this.touchcursor.dragging && !this.touchanticursor.dragging) {
+      this.touchcursor[0].style.display = "none";
+    }
+    this.toggleMenu("hide");
     if ('intervalId' in this)
       clearInterval(this.intervalId);
     delete this.intervalId;
@@ -918,7 +767,7 @@ var Cursor = P(Point, function(_) {
     }
     else {
       var pageX = self.offset().left;
-      to.seek(pageX, self);
+      to.seek(pageX, 0, self);
     }
   };
   _.offset = function() {
@@ -1053,22 +902,50 @@ var Cursor = P(Point, function(_) {
     this.insDirOf(dir, this.selection.ends[dir]);
     this.selectionChanged();
     this.ctrlr.container.prepend(this.touchcursors);
-    var bounds = this.touchcursors[0].getBoundingClientRect();
-    var sbounds = this.selection.jQ[0].getBoundingClientRect();
-    this.touchcursor[0].style.transform = 'translate(' + (sbounds.left - bounds.left) +'px, ' + (sbounds.bottom - bounds.top) + 'px)';
-    this.touchanticursor[0].style.transform = 'translate(' + (sbounds.right - bounds.left) +'px, ' + (sbounds.bottom - bounds.top) + 'px)';
-    this.touchcursor.off("touchmove");
-    this.touchcursor.bind("touchmove", this.onCursorSelectionHandleTouchMove);
-    this.touchanticursor[0].style.display = "";
-    this.touchcursor[0].style.display = "";
     var self = this;
-    this.selection.clear = function() {
-      Selection.prototype.clear.apply(this, arguments);
-      self.touchcursor.off("touchmove");
-      self.touchcursor.bind("touchmove", self.onCursorHandleTouchMove);
-      self.touchanticursor[0].style.display = "none";
-      self.touchcursor[0].style.display = "none";
-    };
+    if(self.touchcursor[0].style.display == "" || self.touchanticursor[0].style.display == "") {
+      self.touchcursor[0].style.display = "";
+      self.touchanticursor[0].style.display = "";
+      setTimeout(function() {
+        if(self.selection && self.touchcursors[0]) {
+          var bounds = self.touchcursors[0].getBoundingClientRect();
+          var rbounds = self.selection.ends[R].jQ[0].getBoundingClientRect();
+          var lbounds = self.selection.ends[L].jQ[0].getBoundingClientRect();
+          var setright = function(touchcursor) {
+            var sbounds = rbounds;
+            touchcursor.last = { x: sbounds.right - bounds.left, y: sbounds.bottom - bounds.top};
+            touchcursor[0].style.transform = 'translate(' + touchcursor.last.x +'px, ' + touchcursor.last.y + 'px)';
+          }
+          var setleft = function(touchcursor) {
+            var sbounds = lbounds;
+            touchcursor.last = { x: sbounds.left - bounds.left, y: sbounds.bottom - bounds.top};
+            touchcursor[0].style.transform = 'translate(' + touchcursor.last.x +'px, ' + touchcursor.last.y + 'px)';
+          }
+          if(self.touchcursor.dragging) {
+            if(self.touchcursor.last.x - window.scrollX < (rbounds.right + lbounds.left) / 2) {
+              setright(self.touchanticursor);
+            } else {
+              setleft(self.touchanticursor);
+            }
+          } else if(self.touchanticursor.dragging) {
+            if(self.touchanticursor.last.x -window.scrollX < (rbounds.right + lbounds.left) / 2) {
+              setright(self.touchcursor);
+            } else {
+              setleft(self.touchcursor);
+            }
+          }
+          self.toggleMenu("hide");
+        }
+      }, 0);
+      this.selection.clear = function() {
+        Selection.prototype.clear.apply(this, arguments);
+        if(!self.touchcursor.dragging && !self.touchanticursor.dragging) {
+          self.touchcursor[0].style.display = "none";
+          self.touchanticursor[0].style.display = "none";
+          self.toggleMenu("hide");
+        }
+      };
+    }
     return true;
   };
 
@@ -1082,7 +959,8 @@ var Cursor = P(Point, function(_) {
   };
   _.deleteSelection = function() {
     if (!this.selection) return;
-
+    this.touchcursor[0].style.display = "none";
+    this.touchanticursor[0].style.display = "none";
     this[L] = this.selection.ends[L][L];
     this[R] = this.selection.ends[R][R];
     this.selection.remove();
@@ -1092,6 +970,9 @@ var Cursor = P(Point, function(_) {
   _.replaceSelection = function() {
     var seln = this.selection;
     if (seln) {
+      var self = this;
+      self.touchanticursor[0].style.display = "none";
+      self.touchcursor[0].style.display = "none";
       this[L] = seln.ends[L][L];
       this[R] = seln.ends[R][R];
       delete this.selection;
@@ -1111,6 +992,239 @@ var Cursor = P(Point, function(_) {
       return this.depth() + (offset || 0) > this.options.maxDepth;
     }
   };
+
+  _.onCursorHandleTouchStart = function(e) {
+    e.stopPropagation();
+    e.preventDefault();
+    this.dragging = true;
+    this.showmenu = true;
+    this.cursor.toggleMenu("hide");
+    this.last = this.start = { x: e.originalEvent.touches[0].pageX, y: e.originalEvent.touches[0].pageY };
+    var x = this.last.x;
+    var self = this.cursor;
+    if(self.selection) {
+      this.blockunselectinto = false;
+      this.blockselectoutof = false;
+      var sbounds = self.selection.jQ[0].getBoundingClientRect();
+      var dir = self.selection.ends[L][L] === self[L] ? L : R;
+      if((dir === L && sbounds.left + sbounds.width / 2 < x - window.scrollX) || (dir === R && sbounds.left + sbounds.width / 2 > x - scrollX)) {
+        var re = dir === L ? self : self.anticursor;
+        var le = dir === R ? self : self.anticursor;
+        re[L] = self.selection.ends[R];
+        re[R] = self.selection.ends[R][R];
+        le[L] = self.selection.ends[L][L];
+        le[R] = self.selection.ends[L];
+        self.parent = self[dir].parent;
+        self.anticursor.parent = self[-dir].parent;
+        var anticursor = self.anticursor;
+        var ancestors = anticursor.ancestors = {}; // a map from each ancestor of
+        // the anticursor, to its child that is also an ancestor; in other words,
+        // the anticursor's ancestor chain in reverse order
+        for (var ancestor = anticursor; ancestor.parent; ancestor = ancestor.parent) {
+          ancestors[ancestor.parent.id] = ancestor;
+        }
+      }
+    }
+  };
+
+  _.onCursorHandleTouchMove = function(e) {
+      e.stopPropagation();
+
+      this.last = { x: e.originalEvent.touches[0].pageX, y: e.originalEvent.touches[0].pageY };
+      var x = this.last.x;
+      var y = this.last.y - 22;
+      var self = this.cursor;
+      if(!self.selection) {
+        self.ctrlr.seek(undefined, x, y);
+      } else if(self.selection.jQ.length == 1) {
+        var sbounds = self.selection.jQ[0].getBoundingClientRect();
+        var dir = self.selection.ends[L][L] === self[L] ? L : R;
+        var seeked = false;
+        self.selection.clear();
+        if(this.blockunselectinto && ((dir == L && x - window.scrollX < sbounds.left) || (dir == R && x - window.scrollX > sbounds.right))) {
+          this.blockunselectinto = false;
+        } else if(!seeked && !this.blockunselectinto && ((dir == L && x - window.scrollX > sbounds.left) || (dir == R && x - window.scrollX < sbounds.right)) && self[-dir].id in self.anticursor.ancestors) {
+          self[-dir].unselectInto(-dir, self);
+          self.select();
+          seeked = true;
+          this.blockselectoutof = true;
+        }
+        if(!seeked && self[L] != 0) {
+          var dirbounds = self[L].jQ[0].getBoundingClientRect();
+          if(x - window.scrollX < (dirbounds.left + dirbounds.right) / 2) {
+            self.ctrlr.selectDir(L);
+            seeked = true;
+          }
+        }
+        if(!seeked && self[R] != 0) {
+          var dirbounds = self[R].jQ[0].getBoundingClientRect();
+          if(x - window.scrollX > (dirbounds.left + dirbounds.right) / 2) {
+            self.ctrlr.selectDir(R);
+            seeked = true;
+          }
+        }
+        if(!seeked && this.blockselectoutof && ((dir == L && x - window.scrollX >= sbounds.left) || (dir == R && x - window.scrollX <= sbounds.right))) {
+          this.blockselectoutof = false;
+        }
+        else if(!seeked && !this.blockselectoutof && self[dir] == 0 && self.parent.parent) {
+          var end = self[-dir];
+          var parent = self.parent;
+          self.parent.selectOutOf(dir, self);
+          var dirbounds = self[-dir].jQ[0].getBoundingClientRect();
+          if(((dir == L) && (x - window.scrollX > (dirbounds.left + sbounds.left) / 2)) || ((dir == R) && (x - window.scrollX < (sbounds.right + dirbounds.right) / 2))) {
+            self[-dir] = end;
+            self[dir] = 0;
+            self.parent = parent;
+          } else {
+            this.blockunselectinto = true;
+            self.select();
+            seeked = true;
+          }
+        }
+        if(!seeked) {
+          self.select();
+        }
+        if(!self.selection) {
+          // Hide non dragging cursor
+          this.other[0].style.display = "none";
+        }
+      } else {
+        // Hide non dragging cursor
+        this.other[0].style.display = "none";
+      }
+      this.showmenu &= Math.abs(this.start.x - x) <= 20 && Math.abs(this.start.y - y) <= 20;
+      var bounds = self.touchcursors[0].getBoundingClientRect();
+      this[0].style.transform = 'translate(' + (x - bounds.left - window.scrollX) +'px, ' + (y - bounds.top - window.scrollY) + 'px)';
+  };
+
+  _.onCursorHandleTouchEnd = function(e) {
+      e.stopPropagation();
+      this.dragging = false;
+      this.blockunselectinto = false;
+      var self = this;
+      var x = this.last.x;
+      var y = this.last.y;
+      if (this.showmenu) {
+        var bounds = this[0].getBoundingClientRect();
+        var x = (bounds.left + bounds.right) / 2;
+        var y = bounds.top;
+        //this.cursor.menu[0].style.left = (x - window.scrollX - bounds.left) + "px";
+        //this.cursor.menu[0].style.top = (y - window.scrollY - 44 - bounds.top) + "px";
+        // var y = this.last.y - 22;
+        var windowHeight = $(window).height();
+        var windowWidth = $(window).width();
+        if(y > windowHeight / 2 && x <= windowWidth / 2) {
+          this.cursor.menu.css("left", x);
+          this.cursor.menu.css("bottom", windowHeight - y);
+          this.cursor.menu.css("right", "auto");
+          this.cursor.menu.css("top", "auto");
+        } else if(ey > windowHeight / 2 && x > windowWidth / 2) {
+          this.cursor.menu.css("right", windowWidth - x);
+          this.cursor.menu.css("bottom", windowHeight - y);
+          this.cursor.menu.css("left", "auto");
+          this.cursor.menu.css("top", "auto");
+        } else if(y <= windowHeight / 2 && x <= windowWidth / 2) {
+          this.cursor.menu.css("left", x);
+          this.cursor.menu.css("top", y);
+          this.cursor.menu.css("right", "auto");
+          this.cursor.menu.css("bottom", "auto");
+        } else {
+          this.cursor.menu.css("right", windowWidth - x);
+          this.cursor.menu.css("top", y);
+          this.cursor.menu.css("left", "auto");
+          this.cursor.menu.css("bottom", "auto");
+        }
+        this.cursor.toggleMenu("show");
+      }
+      if(this.cursor.selection) {
+        var self = this.cursor;
+        setTimeout(function() {
+          if(self.selection && self.touchcursors[0]) {
+            var bounds = self.touchcursors[0].getBoundingClientRect();
+            if(!self.touchcursor.dragging) {
+              var sbounds = self.selection.ends[R].jQ[0].getBoundingClientRect();
+              self.touchcursor[0].style.transform = 'translate(' + (sbounds.right - bounds.left) +'px, ' + (sbounds.bottom - bounds.top) + 'px)';
+            }
+            if(!self.touchanticursor.dragging) {
+              var sbounds = self.selection.ends[L].jQ[0].getBoundingClientRect();
+              self.touchanticursor[0].style.transform = 'translate(' + (sbounds.left - bounds.left) +'px, ' + (sbounds.bottom - bounds.top) + 'px)';
+            }
+          }
+        }, 0);
+      } else {
+        setTimeout(function() {
+          if(self.cursor.jQ[0]) {
+            var bounds = self.cursor.touchcursors[0].getBoundingClientRect();
+            var sbounds = self.cursor.jQ[0].getBoundingClientRect();
+            self[0].style.transform = 'translate(' + (sbounds.left - bounds.left) +'px, ' + (sbounds.bottom - bounds.top) + 'px)';
+          }
+        }, 0);
+      }
+  };
+
+  _.toggleMenu = function(command) {
+    if(command === "show") {
+      var all = this.menu[0].querySelectorAll('li[class="menu-option"]');
+      if(this.ctrlr.editable) {
+        if(this.selection) {
+          all.item(0).style.display = "";
+          all.item(1).style.display = "";
+          all.item(2).style.display = "";
+        } else {
+          all.item(0).style.display = "none";
+          all.item(1).style.display = "none";
+          all.item(2).style.display = "";
+        }
+      } else {
+        all.item(0).style.display = "";
+        all.item(1).style.display = "none";
+        all.item(2).style.display = "none";
+      }
+      this.menu[0].style.display = "block";
+    } else {
+      this.menu[0].style.display = "none";
+    }
+  };
+
+  _.showTouchCursors = function() {
+    this.ctrlr.container.prepend(this.touchcursors);
+    var self = this;
+    self.toggleMenu("hide");
+    if(this.selection) {
+      self.touchcursor[0].style.display = "";
+      self.touchanticursor[0].style.display = "";
+      setTimeout(function() {
+        if(self.selection && self.touchcursors[0]) {
+          var bounds = self.touchcursors[0].getBoundingClientRect();
+          if(!self.touchcursor.dragging) {
+            var sbounds = self.selection.ends[R].jQ[0].getBoundingClientRect();
+            self.touchcursor[0].style.transform = 'translate(' + (sbounds.right - bounds.left) +'px, ' + (sbounds.bottom - bounds.top) + 'px)';
+          }
+          if(!self.touchanticursor.dragging) {
+            var sbounds = self.selection.ends[L].jQ[0].getBoundingClientRect();
+            self.touchanticursor[0].style.transform = 'translate(' + (sbounds.left - bounds.left) +'px, ' + (sbounds.bottom - bounds.top) + 'px)';
+          }
+        }
+      }, 0);
+      this.selection.clear = function() {
+        Selection.prototype.clear.apply(this, arguments);
+        if(!self.touchcursor.dragging && !self.touchanticursor.dragging) {
+          self.touchanticursor[0].style.display = "none";
+          self.touchcursor[0].style.display = "none";
+          self.toggleMenu("hide");
+        }
+      };
+    } else if(self.ctrlr.editable){
+      self.touchcursor[0].style.display = "";
+      setTimeout(function() {
+        if(self.jQ[0]) {
+          var bounds = self.touchcursors[0].getBoundingClientRect();
+          var sbounds = self.jQ[0].getBoundingClientRect();
+          self.touchcursor[0].style.transform = 'translate(' + (sbounds.left - bounds.left) +'px, ' + (sbounds.bottom - bounds.top) + 'px)';
+        }
+      }, 0);
+    }
+  }
 });
 
 var Selection = P(Fragment, function(_, super_) {
@@ -1548,7 +1662,8 @@ var saneKeyboardEvents = (function() {
   // create a keyboard events shim that calls callbacks at useful times
   // and exports useful public methods
   return function saneKeyboardEvents(el, handlers) {
-    var androidaround = false;
+    var isandroid = /.*android.*/i.test(navigator.userAgent);
+    var androidcompose = false;
     var keydown = null;
     var keypress = null;
 
@@ -1607,8 +1722,8 @@ var saneKeyboardEvents = (function() {
     }
 
     function handleKey() {
-      if (keydown.which === 229) {
-        androidaround = true;
+      if (isandroid && keydown.which === 229) {
+        androidcompose = true;
         textarea.val('\0');
       } else {
         handlers.keystroke(stringify(keydown), keydown);
@@ -1647,46 +1762,48 @@ var saneKeyboardEvents = (function() {
       if (!!keydown && !keypress) checkTextareaFor(typedText);
     }
     function typedText() {
-      // If there is a selection, the contents of the textarea couldn't
-      // possibly have just been typed in.
-      // This happens in browsers like Firefox and Opera that fire
-      // keypress for keystrokes that are not text entry and leave the
-      // selection in the textarea alone, such as Ctrl-C.
-      // Note: we assume that browsers that don't support hasSelection()
-      // also never fire keypress on keystrokes that are not text entry.
-      // This seems reasonably safe because:
-      // - all modern browsers including IE 9+ support hasSelection(),
-      //   making it extremely unlikely any browser besides IE < 9 won't
-      // - as far as we know IE < 9 never fires keypress on keystrokes
-      //   that aren't text entry, which is only as reliable as our
-      //   tests are comprehensive, but the IE < 9 way to do
-      //   hasSelection() is poorly documented and is also only as
-      //   reliable as our tests are comprehensive
-      // If anything like #40 or #71 is reported in IE < 9, see
-      // b1318e5349160b665003e36d4eedd64101ceacd8
-      if (hasSelection()) return;
-
-      var text = textarea.val();
-      if (androidaround) {
-        androidaround = false;
+      if (androidcompose) {
+        var text = textarea.val();
+        androidcompose = false;
         textarea.val('');
         if (text.length == 0) {
-          textarea.val('');
           handlers.keystroke('Backspace', keydown);
         }
-        else if (text.length >= 2/* text.length === 2 || text.length === 3 && text.charCodeAt(1) >= 0xd800 */) {
-          var txt = text.substring(1);
-          handlers.keystroke(txt === ' ' ? 'Spacebar' : txt, keydown);
+        else if (text.length >= 2) {
+          text = text.substring(1);
+          handlers.keystroke(text === ' ' ? 'Spacebar' : text, keydown);
           if (!keydown.isDefaultPrevented()) {
-            handlers.typedText(txt);
+            for (var i = 0; i < text.length; i += 1) handlers.typedText(text.charAt(i));
           }
         }
-      } else if (text.length >= 1/* text.length === 1 || text.length === 2 && text.charCodeAt(0) >= 0xd800 */) {
-        textarea.val('');
-        handlers.typedText(text);
-      } // in Firefox, keys that don't type text, just clear seln, fire keypress
-      // https://github.com/mathquill/mathquill/issues/293#issuecomment-40997668
-      else if (text && textarea[0].select) textarea[0].select(); // re-select if that's why we're here
+      } else {
+        // If there is a selection, the contents of the textarea couldn't
+        // possibly have just been typed in.
+        // This happens in browsers like Firefox and Opera that fire
+        // keypress for keystrokes that are not text entry and leave the
+        // selection in the textarea alone, such as Ctrl-C.
+        // Note: we assume that browsers that don't support hasSelection()
+        // also never fire keypress on keystrokes that are not text entry.
+        // This seems reasonably safe because:
+        // - all modern browsers including IE 9+ support hasSelection(),
+        //   making it extremely unlikely any browser besides IE < 9 won't
+        // - as far as we know IE < 9 never fires keypress on keystrokes
+        //   that aren't text entry, which is only as reliable as our
+        //   tests are comprehensive, but the IE < 9 way to do
+        //   hasSelection() is poorly documented and is also only as
+        //   reliable as our tests are comprehensive
+        // If anything like #40 or #71 is reported in IE < 9, see
+        // b1318e5349160b665003e36d4eedd64101ceacd8
+        if (hasSelection()) return;
+
+        var text = textarea.val();
+        if (text.length >= 1) {
+          textarea.val('');
+          for (var i = 0; i < text.length; i += 1) handlers.typedText(text.charAt(i));
+        } // in Firefox, keys that don't type text, just clear seln, fire keypress
+        // https://github.com/mathquill/mathquill/issues/293#issuecomment-40997668
+        else if (text && textarea[0].select) textarea[0].select(); // re-select if that's why we're here
+      }
     }
 
     function onBlur() { keydown = keypress = null; }
@@ -2064,57 +2181,72 @@ Controller.open(function(_) {
       // mouseup on page outside field, but even outside page, except iframes: https://github.com/mathquill/mathquill/commit/8c50028afcffcace655d8ae2049f6e02482346c5#commitcomment-6175800
     });
 
+    var holdtimeout = null;
+    var doubletaptimeout = null;
+    var start;
+    var last;
+
+    var touchselect = function(ctrlr, cursor) {
+      var x = last.x;
+      var y = last.y;
+      var bounds = cursor.jQ[0].getBoundingClientRect();
+      ctrlr.selectDir((bounds.left - x) > (x - bounds.right) ? L : R);
+      cursor.showTouchCursors();
+    }
+
     this.container.bind('touchstart.mathquill', function(e) {
       var rootjQ = $(e.target).closest('.mq-root-block');
       var root = Node.byId[rootjQ.attr(mqBlockId) || ultimateRootjQ.attr(mqBlockId)];
       var ctrlr = root.controller, cursor = ctrlr.cursor, blink = cursor.blink;
       var textareaSpan = ctrlr.textareaSpan, textarea = ctrlr.textarea;
-
-      e.preventDefault(); // doesn't work in IE\u22648, but it's a one-line fix:
-      e.target.unselectable = true; // http://jsbin.com/yagekiji/1
-
-      if (cursor.options.ignoreNextMousedown(e)) return;
-      else cursor.options.ignoreNextMousedown = noop;
-
-      var target;
-      function touchmove(e) { target = $(e.target); }
-      function doctouchmove(e) {
-        if (!cursor.anticursor) cursor.startSelection();
-        //console.log(e.originalEvent.touches);
-        ctrlr.seek(target, e.originalEvent.touches[0].pageX,  e.originalEvent.touches[0].pageY).cursor.select();
-        target = undefined;
-      }
-      // outside rootjQ, the MathQuill node corresponding to the target (if any)
-      // won't be inside this root, so don't mislead Controller::seek with it
-
-      function touchend(e) {
-        cursor.blink = blink;
-        if (!cursor.selection) {
-          if (ctrlr.editable) {
-            cursor.show();
-          }
-          else {
-            textareaSpan.detach();
-          }
-        }
-
-        // delete the mouse handlers now that we're not dragging anymore
-        //rootjQ.unbind('touchmove', touchmove);
-        $(e.target.ownerDocument).unbind('touchmove', doctouchmove).unbind('touchend touchcancel', touchend);
-      }
-
+      e.preventDefault();
       if (ctrlr.blurred) {
         if (!ctrlr.editable) rootjQ.prepend(textareaSpan);
         textarea.focus();
       }
+      last = start = { x: e.originalEvent.touches[0].pageX, y: e.originalEvent.touches[0].pageY };
+      ctrlr.seek($(e.target), start.x, start.y).cursor.startSelection();
+      cursor.showTouchCursors();
+      holdtimeout = setTimeout(function() {
+        holdtimeout = null;
+        touchselect(ctrlr, cursor);
+      }, 500);
+    });
 
-      cursor.blink = noop;
-      ctrlr.seek($(e.target), e.originalEvent.touches[0].pageX,  e.originalEvent.touches[0].pageY).cursor.startSelection();
+    this.container.bind('touchmove.mathquill', function(e) {
+      e.stopPropagation();
+      last = { x: e.originalEvent.touches[0].pageX, y: e.originalEvent.touches[0].pageY };
+      var x = last.x;
+      var y = last.y;
+      if ((Math.abs(start.x - x) > 20 || Math.abs(start.y - y) > 20) && holdtimeout !== null) {
+        clearTimeout(holdtimeout);
+        holdtimeout = null;
+      }
+    });
 
-      //rootjQ.bind('touchmove', touchmove);
-      $(e.target.ownerDocument).bind('touchmove', doctouchmove).bind('touchend touchcancel', touchend);
-      // listen on document not just body to not only hear about mousemove and
-      // mouseup on page outside field, but even outside page, except iframes: https://github.com/mathquill/mathquill/commit/8c50028afcffcace655d8ae2049f6e02482346c5#commitcomment-6175800
+    this.container.bind('touchend.mathquill touchcancel.mathquill', function(e) {
+      var rootjQ = $(e.target).closest('.mq-root-block');
+      var root = Node.byId[rootjQ.attr(mqBlockId) || ultimateRootjQ.attr(mqBlockId)];
+      var ctrlr = root.controller, cursor = ctrlr.cursor, blink = cursor.blink;
+      var textareaSpan = ctrlr.textareaSpan, textarea = ctrlr.textarea;
+      if(holdtimeout !== null) {
+        clearTimeout(holdtimeout);
+        holdtimeout = null;
+        if(doubletaptimeout === null)  {
+          doubletaptimeout = setTimeout(function() {
+            doubletaptimeout = null;
+          }, 500);
+        } else {
+          clearTimeout(doubletaptimeout);
+          doubletaptimeout = null;
+          touchselect(ctrlr, cursor);
+        }
+      }
+      e.preventDefault();
+      if (ctrlr.blurred) {
+        if (!ctrlr.editable) rootjQ.prepend(textareaSpan);
+        textarea.focus();
+      }
     });
   }
 });
@@ -2138,7 +2270,7 @@ Controller.open(function(_) {
     // seek from root, which is less accurate (e.g. fraction)
     cursor.clearSelection().show();
 
-    node.seek(pageX, cursor);
+    node.seek(pageX, pageY, cursor);
     this.scrollHoriz(); // before .selectFrom when mouse-selecting, so
                         // always hits no-selection case in scrollHoriz and scrolls slower
     return this;
@@ -2573,10 +2705,7 @@ var latexMathParser = (function() {
   // Parsers yielding either MathCommands, or Fragments of MathCommands
   //   (either way, something that can be adopted by a MathBlock)
   var variable = letter.map(function(c) { return Letter(c); });
-  // ~Allow pasting emoticons (Windows), also parse combinded emoticons with U+200D and unicode support es6
-  // ~Chrome is so sad, needs brackets around group to match whole smily
-  // ~/^[^${}\\_^](\u{200D}([^${}\\_^]))?/u
-  var symbol = regex(/^[^${}\\_^]/).map(function(c) { return VanillaSymbol(c); });
+  var symbol = regex(/^[\uD800-\uDBFF]?[^${}\\_^](\u200D[\uD800-\uDBFF]?[^${}\\_^])*/).map(function(c) { return VanillaSymbol(c); });
 
   var controlSequence =
     regex(/^[^\\a-eg-zA-Z]/) // hotfix #164; match MathBlock::write
@@ -2929,48 +3058,48 @@ var MathCommand = P(MathElement, function(_, super_) {
   _.unselectInto = function(dir, cursor) {
     cursor.insAtDirEnd(-dir, cursor.anticursor.ancestors[this.id]);
   };
-  _.seek = function(pageX, cursor) {
-    function getBounds(node) {
-      var bounds = {}
-      bounds[L] = node.jQ.offset().left;
-      bounds[R] = bounds[L] + node.jQ.outerWidth();
+  _.seek = function(pageX, pageY, cursor) {
+    function getDistance(block) {
+      var bounds = block.jQ[0].getBoundingClientRect();
+      var dxl = bounds.left - pageX;
+      var dxr = bounds.right - pageX;
+      var dyt = bounds.top - pageY;
+      var dyb = bounds.bottom - pageY;
+      bounds.distanceXl = dxl * dxl;
+      bounds.distanceXr = dxr * dxr;
+      bounds.distanceX = dxl * dxr < 0 ? 0 : Math.min(bounds.distanceXl, bounds.distanceXr);
+      bounds.distanceYt = dyt * dyt;
+      bounds.distanceYb = dyb * dyb;
+      bounds.distanceY =  dyt * dyb < 0 ? 0 : Math.min(bounds.distanceYt, bounds.distanceYb);
+      bounds.distance = bounds.distanceX + bounds.distanceY;
       return bounds;
     }
 
     var cmd = this;
-    var cmdBounds = getBounds(cmd);
+    var cmdBounds = getDistance(cmd);
 
-    if (pageX < cmdBounds[L]) return cursor.insLeftOf(cmd);
-    if (pageX > cmdBounds[R]) return cursor.insRightOf(cmd);
-
-    var leftLeftBound = cmdBounds[L];
-    cmd.eachChild(function(block) {
-      var blockBounds = getBounds(block);
-      if (pageX < blockBounds[L]) {
-        // closer to this block's left bound, or the bound left of that?
-        if (pageX - leftLeftBound < blockBounds[L] - pageX) {
-          if (block[L]) cursor.insAtRightEnd(block[L]);
-          else cursor.insLeftOf(cmd);
-        }
-        else cursor.insAtLeftEnd(block);
-        return false;
-      }
-      else if (pageX > blockBounds[R]) {
-        if (block[R]) leftLeftBound = blockBounds[R]; // continue to next block
-        else { // last (rightmost) block
-          // closer to this block's right bound, or the cmd's right bound?
-          if (cmdBounds[R] - pageX < pageX - blockBounds[R]) {
-            cursor.insRightOf(cmd);
+    var nextblock = { distance: Infinity };
+    if(cmdBounds.distanceX == 0) {
+      cmd.eachChild(function(block) {
+        var bounds = getDistance(block);
+        if(bounds.distance < nextblock.distance) {
+          bounds.node = block;
+          nextblock = bounds;
+          if(bounds.distance === 0) {
+            return false;
           }
-          else cursor.insAtRightEnd(block);
         }
+      });
+    }
+    if (cmdBounds.distanceX != 0 || nextblock.distance === Infinity || cmdBounds.distanceXl < nextblock.distanceX || cmdBounds.distanceXr < nextblock.distanceX) {
+      return pageX < (cmdBounds.left + cmdBounds.right) / 2 ? cursor.insLeftOf(cmd) : cursor.insRightOf(cmd);
+    } else {
+      if(nextblock.distanceX === 0) {
+        return nextblock.node.seek(pageX, pageY, cursor);
       }
-      else {
-        block.seek(pageX, cursor);
-        return false;
-      }
-    });
-  }
+      return pageX < nextblock.left ? cursor.insAtLeftEnd(nextblock.node) : cursor.insAtRightEnd(nextblock.node);
+    }
+  };
 
   // methods involved in creating and cross-linking with HTML DOM nodes
   /*
@@ -3124,7 +3253,7 @@ var Symbol = P(MathCommand, function(_, super_) {
   _.deleteTowards = function(dir, cursor) {
     cursor[dir] = this.remove()[dir];
   };
-  _.seek = function(pageX, cursor) {
+  _.seek = function(pageX, pageY, cursor) {
     // insert at whichever side the click was closer to
     if (pageX - this.jQ.offset().left < this.jQ.outerWidth()/2)
       cursor.insLeftOf(this);
@@ -3141,6 +3270,15 @@ var VanillaSymbol = P(Symbol, function(_, super_) {
   _.init = function(ch, html) {
     super_.init.call(this, ch, '<span>'+(html || ch)+'</span>');
   };
+  _.createLeftOf = function(cursor) {
+    if(cursor[L] instanceof VanillaSymbol && (/[\u200D\uFE0F]/.test(this.ctrlSeq) || /^.*[\u200D\uD800-\uDBFF]$/.test(cursor[L].ctrlSeq))) {
+      cursor[L].ctrlSeq += this.ctrlSeq;
+      cursor[L].htmlTemplate = '<span>' + cursor[L].ctrlSeq + '</span>';
+      cursor[L].jQ.text(cursor[L].ctrlSeq);
+    } else {
+      super_.createLeftOf.apply(this, arguments);
+    }
+  }
 });
 var BinaryOperator = P(Symbol, function(_, super_) {
   _.init = function(ctrlSeq, html, text) {
@@ -3194,14 +3332,14 @@ var MathBlock = P(MathElement, function(_, super_) {
   _.deleteOutOf = function(dir, cursor) {
     cursor.unwrapGramp();
   };
-  _.seek = function(pageX, cursor) {
+  _.seek = function(pageX, pageY, cursor) {
     var node = this.ends[R];
     if (!node || node.jQ.offset().left + node.jQ.outerWidth() < pageX) {
       return cursor.insAtRightEnd(this);
     }
     if (pageX < this.ends[L].jQ.offset().left) return cursor.insAtLeftEnd(this);
     while (pageX < node.jQ.offset().left) node = node[L];
-    return node.seek(pageX, cursor);
+    return node.seek(pageX, pageY, cursor);
   };
   _.chToCmd = function(ch, options) {
     var cons;
@@ -3403,7 +3541,7 @@ var TextBlock = P(Node, function(_, super_) {
     }
   };
 
-  _.seek = function(pageX, cursor) {
+  _.seek = function(pageX, pageY, cursor) {
     cursor.hide();
     var textPc = fuseChildren(this);
 
@@ -4697,64 +4835,44 @@ LatexCmds.formula = P(MathCommand, function(_, super_) {
       self.fakeends = [];
       self.fakeends[L] = self.parameter[0];
       self.fakeends[R] = self.parameter[self.parameter.length - 1];
-      // Default move to directly to first parameter
+      // Default move directly to first parameter
       self.moveTowards = function(dir, cursor, updown) {
-        var updownInto = updown && this[updown+'Into'];
         cursor.insAtDirEnd(-dir, this.fakeends[-dir])
-        //cursor.insDirOf(-dir, updownInto || this.fakeends[-dir]);
       };
 
       // modified to use parameter array
-      self.seek = function(pageX, cursor) {
-        function getBounds(node) {
-          var bounds = {}
-          bounds[L] = node.jQ.offset().left;
-          bounds[R] = bounds[L] + node.jQ.outerWidth();
-          return bounds;
-        }
-
-        var cmd = this;
-        var cmdBounds = getBounds(cmd);
-
-        if (pageX < cmdBounds[L]) return cursor.insLeftOf(cmd);
-        if (pageX > cmdBounds[R]) return cursor.insRightOf(cmd);
-
-        var leftLeftBound = cmdBounds[L];
-        for(var i = 0; i < this.parameter.length; i++) {
-          var block = this.parameter[i];
-          var blockBounds = getBounds(block);
-          if (pageX < blockBounds[L]) {
-            // closer to this block's left bound, or the bound left of that?
-            if (pageX - leftLeftBound < blockBounds[L] - pageX) {
-              if (i - 1 > 0) cursor.insAtRightEnd(this.parameter[i - 1]);
-              else cursor.insLeftOf(cmd);
-            }
-            else cursor.insAtLeftEnd(block);
-            break;
-          }
-          else if (pageX > blockBounds[R]) {
-            if (i + 1 < this.parameter.length) leftLeftBound = blockBounds[R]; // continue to next block
-            else { // last (rightmost) block
-              // closer to this block's right bound, or the cmd's right bound?
-              if (cmdBounds[R] - pageX < pageX - blockBounds[R]) {
-                cursor.insRightOf(cmd);
-              }
-              else cursor.insAtRightEnd(block);
-            }
-          }
-          else {
-            block.seek(pageX, cursor);
-            break;
-          }
-        }
+      self.seek = function() {
+        var wrapper = Object.create(self);
+        wrapper.eachChild = function(func) {
+          return self.parameter.forEach(func);
+        };
+        super_.seek.apply(wrapper, arguments);
       };
 
       self.deleteTowards = function(dir, cursor) {
         cursor[dir] = this.remove()[dir];
       };
+
+      self.unselectInto = function(dir, cursor) {
+        var p = null;
+        this.parameter.forEach(function(param) {
+          if(param.id in cursor.anticursor.ancestors) {
+            p = param;
+          }
+        });
+        if(p != null) {
+          var point = cursor.anticursor.ancestors[p.id];
+          if(point instanceof Point) {
+            point = point.parent;
+          }
+          cursor.insAtDirEnd(-dir, point);
+        } else {
+          cursor.insDirOf(-dir, this);
+        }
+      };
     } else {
       self.moveTowards = function(dir, cursor, updown) {
-        cursor.insDirOf(dir, self);
+        cursor.insDirOf(dir, this);
       };
       self.seek = function(pageX, cursor) {
         // insert at whichever side the click was closer to
@@ -4766,6 +4884,9 @@ LatexCmds.formula = P(MathCommand, function(_, super_) {
       self.deleteTowards = function(dir, cursor) {
         cursor[dir] = this.remove()[dir];
       };
+      // self.selectOutOf = function(dir, cursor) {
+      //     cursor.insDirOf(dir, self);
+      // };
     }
   }
 
@@ -4867,14 +4988,15 @@ LatexCmds.begin = P(MathCommand, function(_, super_) {
 _.parser = function() {
   var string = Parser.string;
   var regex = Parser.regex;
-  return string('{')
+  var optWhitespace = Parser.optWhitespace;
+  return optWhitespace.then(string('{'))
     .then(regex(/^[a-z]+/i))
     .skip(string('}'))
     .then(function (env) {
         return (Environments[env] ?
           Environments[env]().parser() :
           Parser.fail('unknown environment type: '+env)
-        ).skip(string('\\end{'+env+'}'));
+        ).skip(string('\\end').then(optWhitespace).then(string('{').then(optWhitespace).then(string(env)).then(optWhitespace).then(string('}'))));
     })
   ;
 };
@@ -5461,13 +5583,13 @@ LatexCmds.nless = bind(VanillaSymbol, '\\nless ', '&#8814;');
 LatexCmds.ngtr = bind(VanillaSymbol, '\\ngtr ', '&#8815;');
 
 //arrows
-LatexCmds.longleftarrow = bind(VanillaSymbol, '\\longleftarrow ', '&#8592;');
-LatexCmds.longrightarrow = bind(VanillaSymbol, '\\longrightarrow ', '&#8594;');
-LatexCmds.Longleftarrow = bind(VanillaSymbol, '\\Longleftarrow ', '&#8656;');
-LatexCmds.Longrightarrow = bind(VanillaSymbol, '\\Longrightarrow ', '&#8658;');
-LatexCmds.longleftrightarrow = bind(VanillaSymbol, '\\longleftrightarrow ', '&#8596;');
+LatexCmds.longleftarrow = bind(VanillaSymbol, '\\longleftarrow ', '&xlarr;');
+LatexCmds.longrightarrow = bind(VanillaSymbol, '\\longrightarrow ', '&xrarr;');
+LatexCmds.Longleftarrow = bind(VanillaSymbol, '\\Longleftarrow ', '&xlArr;');
+LatexCmds.Longrightarrow = bind(VanillaSymbol, '\\Longrightarrow ', '&xrArr;');
+LatexCmds.longleftrightarrow = bind(VanillaSymbol, '\\longleftrightarrow ', '&xharr;');
 LatexCmds.updownarrow = bind(VanillaSymbol, '\\updownarrow ', '&#8597;');
-LatexCmds.Longleftrightarrow = bind(VanillaSymbol, '\\Longleftrightarrow ', '&#8660;');
+LatexCmds.Longleftrightarrow = bind(VanillaSymbol, '\\Longleftrightarrow ', '&xhArr;');
 LatexCmds.Updownarrow = bind(VanillaSymbol, '\\Updownarrow ', '&#8661;');
 LatexCmds.mapsto = bind(VanillaSymbol, '\\mapsto ', '&#8614;');
 LatexCmds.nearrow = bind(VanillaSymbol, '\\nearrow ', '&#8599;');

@@ -11,7 +11,7 @@ input[type="radio"] + label {
 }
 
 input[type="radio"]:checked + label {
-    background-color: #a8a8a8;
+    background-color: #a8a8a8 !important;
 }
 
 input[type="radio"] + label + div {

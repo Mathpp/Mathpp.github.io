@@ -519,7 +519,8 @@
   height: 1px;
   box-sizing: content-box;
 }
-.mathquill-edit-menu {
+.mq-editable-field .mathquill-edit-menu,
+.mq-math-mode .mathquill-edit-menu {
   width: 120px;
   background-color: white;
   box-shadow: 0 4px 5px 3px rgba(0, 0, 0, 0.2);
@@ -527,17 +528,20 @@
   display: none;
   z-index: 5;
 }
-.mathquill-edit-menu .menu-options {
+.mq-editable-field .mathquill-edit-menu .menu-options,
+.mq-math-mode .mathquill-edit-menu .menu-options {
   list-style: none;
   padding: 10px 0;
 }
-.mathquill-edit-menu .menu-options .menu-option {
+.mq-editable-field .mathquill-edit-menu .menu-options .menu-option,
+.mq-math-mode .mathquill-edit-menu .menu-options .menu-option {
   font-weight: 500;
   font-size: 14px;
   padding: 10px 40px 10px 20px;
   cursor: pointer;
 }
-.mathquill-edit-menu .menu-options .menu-option:hover {
+.mq-editable-field .mathquill-edit-menu .menu-options .menu-option:hover,
+.mq-math-mode .mathquill-edit-menu .menu-options .menu-option:hover {
   background: rgba(0, 0, 0, 0.2);
 }
 .mq-math-mode .mq-matrixed {
