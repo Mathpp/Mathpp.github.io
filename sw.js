@@ -44,7 +44,7 @@ self.addEventListener('message', function (event) {
                                 cache.put(event.request, r);
                             })
                         })).then(function() {
-                            postMessage("updated");
+                            self.postMessage("updated");
                         })
                     })
                 })
