@@ -10,7 +10,13 @@ self.addEventListener('install', function (event) {
         if(hascache) {
             return caches.delete(CACHE_NAME);
         }
-    })))
+    })).then(function() {
+        return self.skipWaiting();
+    }))
+});
+
+self.addEventListener('activate', function (event) {
+    self.clients.claim();
 });
 
 self.addEventListener('fetch', function (event) {
