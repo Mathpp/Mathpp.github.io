@@ -7,17 +7,20 @@ if ('serviceWorker' in navigator) {
         console.log('ServiceWorker registration failed: ', err);
         });
     });
-    Update = function() {
-        if(navigator.serviceWorker) {
-            navigator.serviceWorker.controller.postMessage("update");
-            navigator.serviceWorker.addEventListener("message", function(e) {
-                if(e.data === "updated") {
-                    alert("Updated Reloading");
+    navigator.serviceWorker.ready.then(function(registration) {
+        var sw = registration.active || registration.waiting;
+        if (sw) {
+            sw.addEventListener("message", function(e) {
+                if (e.data === "updated") {
+                    alert("Updated now reloading");
                     location.reload();
                 }
             });
+            Update = function() {
+                sw.postMessage("update");
+            };
         }
-    };
+    });
 } else {
     Update = function() {
         location.reload();
