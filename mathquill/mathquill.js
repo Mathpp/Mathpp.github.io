@@ -4870,22 +4870,9 @@ LatexCmds.formula = P(MathCommand, function(_, super_) {
         }
       };
     } else {
-      self.moveTowards = function(dir, cursor, updown) {
-        cursor.insDirOf(dir, this);
-      };
-      self.seek = function(pageX, cursor) {
-        // insert at whichever side the click was closer to
-        if (pageX - this.jQ.offset().left < this.jQ.outerWidth()/2)
-          cursor.insLeftOf(this);
-        else
-          cursor.insRightOf(this);
-      };
-      self.deleteTowards = function(dir, cursor) {
-        cursor[dir] = this.remove()[dir];
-      };
-      // self.selectOutOf = function(dir, cursor) {
-      //     cursor.insDirOf(dir, self);
-      // };
+      self.moveTowards = Symbol.prototype.moveTowards;
+      self.deleteTowards = Symbol.prototype.deleteTowards;
+      self.seek = Symbol.prototype.seek;
     }
   }
 
