@@ -8,7 +8,7 @@ if ('serviceWorker' in navigator) {
         });
     });
     navigator.serviceWorker.ready.then(function(registration) {
-        var sw = registration.active || registration.waiting;
+        var sw = navigator.serviceWorker;
         if (sw) {
             sw.addEventListener("message", function(e) {
                 if (e.data === "updated") {
