@@ -10,7 +10,12 @@ if ('serviceWorker' in navigator) {
     Update = function() {
         if(navigator.serviceWorker) {
             navigator.serviceWorker.controller.postMessage("update");
-            location.reload();
+            navigator.serviceWorker.addEventListener("message", function(e) {
+                if(e.data === "updated") {
+                    alert("Updated Reloading");
+                    location.reload();
+                }
+            });
         }
     };
 } else {
