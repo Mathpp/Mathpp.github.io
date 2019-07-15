@@ -41,7 +41,7 @@ self.addEventListener('message', function (event) {
                     return cache.keys().then(function (keys) {
                         Promise.all(keys.map(function(url) {
                             return fetch(url, { cache: "no-store" }).then(function (r) {
-                                cache.put(event.request, r);
+                                cache.put(url, r);
                             })
                         })).then(function() {
                             self.postMessage("updated");
